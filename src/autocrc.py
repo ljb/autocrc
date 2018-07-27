@@ -22,40 +22,9 @@ The core of autocrc. Performs the CRC-checks independent of what kind
 of interface is used
 """
 import mmap
-import optparse
 import os
 import re
 import zlib
-
-
-class AutoParser(optparse.OptionParser):
-    """Parse flags from the commandline"""
-
-    def __init__(self):
-        super().__init__(usage="%prog [OPTION]... [FILE]...",
-                         version="%prog v0.4")
-
-        self.add_option("-r", "--recursive", action="store_true",
-                        help="CRC-check recursively")
-        self.add_option("-i", "--ignore-case", action="store_true",
-                        dest="case", help="ignore case for filenames parsed from sfv-files")
-        self.add_option("-x", "--exchange", action="store_true",
-                        help="interpret \\ as / for filenames parsed from sfv-files")
-        self.add_option("-c", "--no-crc", action="store_false", dest="crc",
-                        default=True, help="do not parse CRC-sums from filenames")
-        self.add_option("-s", "--no-sfv", action="store_false", dest="sfv",
-                        default=True, help="do not parse CRC-sums from sfv-files")
-        self.add_option("-C", "--directory",
-                        metavar="DIR", help="use DIR as the working directory")
-        self.add_option("-L", "--follow", action="store_true",
-                        help="follow symbolic directory links in recursive mode")
-
-    def parse_args(self, _args=None, _values=None):
-        flags, args = super().parse_args()
-        file_names = [arg for arg in args if os.path.isfile(arg)]
-        dir_names = [arg for arg in args if os.path.isdir(arg)] if args \
-            else [os.curdir]
-        return flags, file_names, dir_names
 
 
 class Status:
