@@ -124,11 +124,7 @@ class Model:
 
         # If case is to be ignore, build a dictionary with mappings from
         # filenames with lowercase to the filenames with the real case
-        if not self.flags.case:
-            no_case_files = {}
-
-            for file_name in files:
-                no_case_files[file_name.lower()] = file_name
+        no_case_files = {file_name.lower(): file_name for file_name in files}
 
         if sfv_files and self.flags.sfv:
             for sfv_file in sfv_files:

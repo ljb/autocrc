@@ -37,6 +37,10 @@ class TextParser(autocrc.AutoParser):
 
 
 class TextModel(autocrc.Model):
+    def __init__(self, flags, file_names, dir_names):
+        super().__init__(flags, file_names, dir_names)
+        self.dir_stat = None
+
     def file_missing(self, filename):
         """Print that a file is missing"""
         self.file_print(filename, "No such file")
