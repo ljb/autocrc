@@ -10,7 +10,7 @@ setup(name='autocrc',
         package_dir = {'autocrc' : 'src'},
         packages = ['autocrc'],
         url='http://sourceforge.net/projects/autocrc',
-        scripts = ['scripts/autocrc', 'scripts/gautocrc'],
+        scripts = ['scripts/autocrc'],
         license="GPLv3",
         long_description = """
         autocrc uses 32-bit CRC-sums to verify the integrity of files.

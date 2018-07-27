@@ -1,7 +1,4 @@
-- Unicode support
 - Create Windows binaries
-- Improve the way the gauges in the GUI works
-- Add switches to GUI
 - Improve the way --quite works
 - More consequent treatment of paths in the console interface, at the moment
   it's not well defined when it prints absolute paths and when it prints
