@@ -1,0 +1,4 @@
+#!/usr/bin/python
+from autocrc import text
+
+text.main()

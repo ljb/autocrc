@@ -1,0 +1,4 @@
+#!/usr/bin/python
+from autocrc import gui
+
+gui.main()
