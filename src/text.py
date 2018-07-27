@@ -27,8 +27,8 @@ from . import autocrc
 
 def main():
     try:
-        flags, file_names, dir_names = parse_args()
-        model = TextModel(flags, file_names, dir_names)
+        args, file_names, dir_names = parse_args()
+        model = TextModel(args, file_names, dir_names)
         model.run()
 
     except OSError as e:
@@ -44,11 +44,11 @@ def parse_args():
     parser.add_argument("-r", "--recursive", action="store_true",
                         help="CRC-check recursively")
     parser.add_argument("-i", "--ignore-case", action="store_true",
-                        dest="case", help="ignore case for filenames parsed from sfv-files")
+                        dest="case", help="ignore case for file_names parsed from sfv-files")
     parser.add_argument("-x", "--exchange", action="store_true",
-                        help="interpret \\ as / for filenames parsed from sfv-files")
+                        help="interpret \\ as / for file_names parsed from sfv-files")
     parser.add_argument("-c", "--no-crc", action="store_false", dest="crc",
-                        default=True, help="do not parse CRC-sums from filenames")
+                        default=True, help="do not parse CRC-sums from file_names")
     parser.add_argument("-s", "--no-sfv", action="store_false", dest="sfv",
                         default=True, help="do not parse CRC-sums from sfv-files")
     parser.add_argument("-C", "--directory",
@@ -69,42 +69,42 @@ def parse_args():
 
 
 class TextModel(autocrc.Model):
-    def __init__(self, flags, file_names, dir_names):
-        super().__init__(flags, file_names, dir_names)
+    def __init__(self, args, file_names, dir_names):
+        super().__init__(args, file_names, dir_names)
         self.dir_stat = None
 
-    def file_missing(self, filename):
+    def file_missing(self, file_name):
         """Print that a file is missing"""
-        self.file_print(filename, "No such file")
+        self.file_print(file_name, "No such file")
 
-    def file_ok(self, filename):
+    def file_ok(self, file_name):
         """Print that a CRC-check was successful if quiet is false"""
-        if not self.flags.quiet:
-            self.file_print(filename, "OK")
+        if not self.args.quiet:
+            self.file_print(file_name, "OK")
 
-    def file_different(self, filename, crc, real_crc):
+    def file_different(self, file_name, crc, real_crc):
         """
         Print that a CRC-check failed. 
         If verbose is set then the CRC calculated and the CRC that it was 
         compared against is also printed
         """
-        if self.flags.verbose:
-            self.file_print(filename, real_crc + " != " + crc)
+        if self.args.verbose:
+            self.file_print(file_name, real_crc + " != " + crc)
         else:
-            self.file_print(filename, "CRC mismatch")
+            self.file_print(file_name, "CRC mismatch")
 
-    def file_read_error(self, filename):
+    def file_read_error(self, file_name):
         """Print that a read error occurred"""
-        self.file_print(filename, "Read error")
+        self.file_print(file_name, "Read error")
 
-    def directory_start(self, dirname, dir_stat):
+    def directory_start(self, dir_name, dir_stat):
         """Print that the CRC-checking of a directory has started"""
         self.dir_stat = dir_stat
-        if dirname == os.curdir:
-            dirname = os.path.abspath(dirname)
+        if dir_name == os.curdir:
+            dir_name = os.path.abspath(dir_name)
         else:
-            dirname = os.path.normpath(dirname)
-        print("Current directory:", dirname)
+            dir_name = os.path.normpath(dir_name)
+        print("Current directory:", dir_name)
 
     def directory_end(self):
         """Print a summary of a directory."""
@@ -143,9 +143,9 @@ class TextModel(autocrc.Model):
                  (self.total_stat.nr_read_errors > 0) * 4)
 
     @staticmethod
-    def file_print(filename, status):
-        pad_len = max(0, 77 - len(filename))
-        norm_file_name = os.path.normpath(filename)
+    def file_print(file_name, status):
+        pad_len = max(0, 77 - len(file_name))
+        norm_file_name = os.path.normpath(file_name)
         print("{0} {1:>{2}}".format(norm_file_name, status, pad_len))
 
 

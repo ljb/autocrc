@@ -54,58 +54,58 @@ class Model:
     """An abstract model. Subclasses decides how the output is presented"""
 
     def __init__(self, flags, file_names=None, dir_names=None, block_size=8192):
-        self.flags = flags
+        self.args = flags
         self.file_names = file_names or []
         self.dir_names = dir_names or []
         self.block_size = block_size
         self.total_stat = StatusInformation()
 
     @staticmethod
-    def parse(filename):
-        """Returns the CRC parsed from the filename or None if no CRC is found"""
+    def parse(file_name):
+        """Returns the CRC parsed from the file_name or None if no CRC is found"""
         crc = \
-            re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', filename) or \
-            re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', filename) or \
-            re.match(r'.*?_([a-fA-F0-9]{8})_.*?$', filename)
+            re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', file_name) or \
+            re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', file_name) or \
+            re.match(r'.*?_([a-fA-F0-9]{8})_.*?$', file_name)
         if crc:
             return crc.group(1).upper()
 
     def parse_line(self, line):
-        """Parses a line from a sfv-file, returns a filename crc tuple"""
+        """Parses a line from a sfv-file, returns a file name crc tuple"""
         match = re.match(r'([^;]+)\s([a-fA-F0-9]{8})\s*$', line)
         if match:
             # Make Windows directories into Unix directories
-            if self.flags.exchange:
+            if self.args.exchange:
                 return match.group(1).replace('\\', '/'), match.group(2).upper()
             else:
                 return match.group(1), match.group(2).upper()
 
-    def get_crcs(self, dirname, file_names):
-        """Returns a dict with filename, crc pairs"""
+    def get_crcs(self, dir_name, file_names):
+        """Returns a dict with file_name, crc pairs"""
         old_cwd = os.getcwd()
-        os.chdir(dirname)
+        os.chdir(dir_name)
 
         files = [file_name for file_name in file_names if os.path.isfile(file_name)]
         sfv_files = [file_name for file_name in files if file_name.lower().endswith('.sfv')]
         crcs = {}
 
         # If case is to be ignore, build a dictionary with mappings from
-        # filenames with lowercase to the filenames with the real case
+        # file_names with lowercase to the file names with the real case
         no_case_files = {file_name.lower(): file_name for file_name in files}
 
-        if sfv_files and self.flags.sfv:
+        if sfv_files and self.args.sfv:
             for sfv_file in sfv_files:
                 with open(sfv_file, 'r', errors='replace') as file_:
                     for line in file_:
                         result = self.parse_line(line)
                         if result:
                             file_name, crc = result
-                            if not self.flags.case and file_name.lower() in no_case_files:
+                            if not self.args.case and file_name.lower() in no_case_files:
                                 crcs[no_case_files[file_name.lower()]] = crc
                             else:
                                 crcs[file_name] = crc
 
-        if self.flags.crc:
+        if self.args.crc:
             for file in files:
                 crc = self.parse(file)
                 if crc:
@@ -114,10 +114,10 @@ class Model:
         os.chdir(old_cwd)
         return crcs
 
-    def crc32_of_file(self, filepath):
+    def crc32_of_file(self, file_path):
         """Returns the CRC of the file filepath"""
 
-        with open(filepath, 'r+') as file_:
+        with open(file_path, 'r+') as file_:
             with mmap.mmap(file_.fileno(), 0, access=mmap.ACCESS_READ) as map_:
                 self.file_start(file_)
 
@@ -132,17 +132,17 @@ class Model:
                 # Remove everything except the last 32 bits, including the leading 0x
                 return hex(current & 0xFFFFFFFF)[2:].upper().zfill(8)
 
-    def check_dir(self, dirname, file_names):
+    def check_dir(self, dir_name, file_names):
         """CRC-check the files in a directory"""
-        crcs = self.get_crcs(dirname, file_names)
+        crcs = self.get_crcs(dir_name, file_names)
 
         if crcs:
             dir_stat = StatusInformation(len(crcs))
-            self.directory_start(dirname, dir_stat)
+            self.directory_start(dir_name, dir_stat)
 
             for file_name, crc in sorted(crcs.items()):
                 try:
-                    real_crc = self.crc32_of_file(os.path.join(dirname, file_name))
+                    real_crc = self.crc32_of_file(os.path.join(dir_name, file_name))
                 except IOError as e:
                     if e.errno == 2:
                         dir_stat.nr_missing += 1
@@ -162,23 +162,23 @@ class Model:
             self.directory_end()
 
     # Hook methods, implemented by subclasses
-    def file_ok(self, filename):
+    def file_ok(self, file_name):
         """Called when a file was successfully CRC-checked"""
         pass
 
-    def file_missing(self, filename):
+    def file_missing(self, file_name):
         """Called when a file is missing"""
         pass
 
-    def file_read_error(self, filename):
+    def file_read_error(self, file_name):
         """Called when a read error occurs on a file"""
         pass
 
-    def file_different(self, filename, crc, real_crc):
+    def file_different(self, file_name, crc, real_crc):
         """Called when a CRC-mismatch occurs"""
         pass
 
-    def directory_start(self, dirname, dir_stat):
+    def directory_start(self, dir_name, dir_stat):
         """Called when the CRC-checks on a directory is started"""
         pass
 
@@ -206,8 +206,8 @@ class Model:
 
         self.start()
 
-        if self.flags.directory:
-            os.chdir(self.flags.dirname)
+        if self.args.directory:
+            os.chdir(self.args.directory)
 
         # Mapping from a directory name to a list with the files that are
         # to be CRC-checked in that directory
@@ -219,15 +219,15 @@ class Model:
                 files_by_dir[head] = []
             files_by_dir[head].append(tail)
 
-        for dirname, file_names in files_by_dir.items():
-            self.check_dir(dirname, file_names)
+        for dir_name, file_names in files_by_dir.items():
+            self.check_dir(dir_name, file_names)
 
-        for dirname in self.dir_names:
-            if self.flags.recursive:
+        for dir_name in self.dir_names:
+            if self.args.recursive:
                 for root, dirs, files in os.walk(
-                        dirname, followlinks=self.flags.follow):
+                        dir_name, followlinks=self.args.follow):
                     self.check_dir(root, files)
             else:
-                self.check_dir(dirname, os.listdir(dirname))
+                self.check_dir(dir_name, os.listdir(dir_name))
 
         self.end()
