@@ -25,6 +25,49 @@ import sys
 from . import autocrc
 
 
+def main():
+    """The main function"""
+    try:
+        flags, file_names, dir_names = parse_args()
+        model = TextModel(flags, file_names, dir_names)
+        model.run()
+
+    except OSError as e:
+        print("autocrc: {}: {}".format(e.filename, e.strerror), file=sys.stderr)
+        sys.exit(8)
+    except KeyboardInterrupt:
+        pass
+
+
+def parse_args():
+    parser = optparse.OptionParser(usage="%pro [OPTION]... [FILE]...", version="%prog v0.4")
+
+    parser.add_option("-r", "--recursive", action="store_true",
+                      help="CRC-check recursively")
+    parser.add_option("-i", "--ignore-case", action="store_true",
+                      dest="case", help="ignore case for filenames parsed from sfv-files")
+    parser.add_option("-x", "--exchange", action="store_true",
+                      help="interpret \\ as / for filenames parsed from sfv-files")
+    parser.add_option("-c", "--no-crc", action="store_false", dest="crc",
+                      default=True, help="do not parse CRC-sums from filenames")
+    parser.add_option("-s", "--no-sfv", action="store_false", dest="sfv",
+                      default=True, help="do not parse CRC-sums from sfv-files")
+    parser.add_option("-C", "--directory",
+                      metavar="DIR", help="use DIR as the working directory")
+    parser.add_option("-L", "--follow", action="store_true",
+                      help="follow symbolic directory links in recursive mode")
+
+    parser.add_option("-q", "--quiet", action="store_true",
+                      help="Only print error messages and summaries")
+    parser.add_option("-v", "--verbose", action="store_true",
+                      help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
+
+    flags, args = parser.parse_args()
+    file_names = [arg for arg in args if os.path.isfile(arg)]
+    dir_names = [arg for arg in args if os.path.isdir(arg)] if args else [os.curdir]
+    return flags, file_names, dir_names
+
+
 class TextModel(autocrc.Model):
     def __init__(self, flags, file_names, dir_names):
         super().__init__(flags, file_names, dir_names)
@@ -104,49 +147,6 @@ class TextModel(autocrc.Model):
         pad_len = max(0, 77 - len(filename))
         norm_file_name = os.path.normpath(filename)
         print("{0} {1:>{2}}".format(norm_file_name, status, pad_len))
-
-
-def parse_args():
-    parser = optparse.OptionParser(usage="%pro [OPTION]... [FILE]...", version="%prog v0.4")
-
-    parser.add_option("-r", "--recursive", action="store_true",
-                      help="CRC-check recursively")
-    parser.add_option("-i", "--ignore-case", action="store_true",
-                      dest="case", help="ignore case for filenames parsed from sfv-files")
-    parser.add_option("-x", "--exchange", action="store_true",
-                      help="interpret \\ as / for filenames parsed from sfv-files")
-    parser.add_option("-c", "--no-crc", action="store_false", dest="crc",
-                      default=True, help="do not parse CRC-sums from filenames")
-    parser.add_option("-s", "--no-sfv", action="store_false", dest="sfv",
-                      default=True, help="do not parse CRC-sums from sfv-files")
-    parser.add_option("-C", "--directory",
-                      metavar="DIR", help="use DIR as the working directory")
-    parser.add_option("-L", "--follow", action="store_true",
-                      help="follow symbolic directory links in recursive mode")
-
-    parser.add_option("-q", "--quiet", action="store_true",
-                      help="Only print error messages and summaries")
-    parser.add_option("-v", "--verbose", action="store_true",
-                      help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
-
-    flags, args = parser.parse_args()
-    file_names = [arg for arg in args if os.path.isfile(arg)]
-    dir_names = [arg for arg in args if os.path.isdir(arg)] if args else [os.curdir]
-    return flags, file_names, dir_names
-
-
-def main():
-    """The main function"""
-    try:
-        flags, file_names, dir_names = parse_args()
-        model = TextModel(flags, file_names, dir_names)
-        model.run()
-
-    except OSError as e:
-        print("autocrc: {}: {}".format(e.filename, e.strerror), file=sys.stderr)
-        sys.exit(8)
-    except KeyboardInterrupt:
-        pass
 
 
 if __name__ == '__main__':
