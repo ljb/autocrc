@@ -18,9 +18,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """A commandline interface to autocrc"""
-import optparse
 import os
 import sys
+from argparse import ArgumentParser
 
 from . import autocrc
 
@@ -40,32 +40,33 @@ def main():
 
 
 def parse_args():
-    parser = optparse.OptionParser(usage="%pro [OPTION]... [FILE]...", version="%prog v0.4")
+    parser = ArgumentParser()
+    parser.add_argument("--version", action='version', version='%(prog)s v0.4')
+    parser.add_argument("-r", "--recursive", action="store_true",
+                        help="CRC-check recursively")
+    parser.add_argument("-i", "--ignore-case", action="store_true",
+                        dest="case", help="ignore case for filenames parsed from sfv-files")
+    parser.add_argument("-x", "--exchange", action="store_true",
+                        help="interpret \\ as / for filenames parsed from sfv-files")
+    parser.add_argument("-c", "--no-crc", action="store_false", dest="crc",
+                        default=True, help="do not parse CRC-sums from filenames")
+    parser.add_argument("-s", "--no-sfv", action="store_false", dest="sfv",
+                        default=True, help="do not parse CRC-sums from sfv-files")
+    parser.add_argument("-C", "--directory",
+                        metavar="DIR", help="use DIR as the working directory")
+    parser.add_argument("-L", "--follow", action="store_true",
+                        help="follow symbolic directory links in recursive mode")
 
-    parser.add_option("-r", "--recursive", action="store_true",
-                      help="CRC-check recursively")
-    parser.add_option("-i", "--ignore-case", action="store_true",
-                      dest="case", help="ignore case for filenames parsed from sfv-files")
-    parser.add_option("-x", "--exchange", action="store_true",
-                      help="interpret \\ as / for filenames parsed from sfv-files")
-    parser.add_option("-c", "--no-crc", action="store_false", dest="crc",
-                      default=True, help="do not parse CRC-sums from filenames")
-    parser.add_option("-s", "--no-sfv", action="store_false", dest="sfv",
-                      default=True, help="do not parse CRC-sums from sfv-files")
-    parser.add_option("-C", "--directory",
-                      metavar="DIR", help="use DIR as the working directory")
-    parser.add_option("-L", "--follow", action="store_true",
-                      help="follow symbolic directory links in recursive mode")
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help="Only print error messages and summaries")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
+    parser.add_argument("files", nargs='?', default='.')
 
-    parser.add_option("-q", "--quiet", action="store_true",
-                      help="Only print error messages and summaries")
-    parser.add_option("-v", "--verbose", action="store_true",
-                      help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
-
-    flags, args = parser.parse_args()
-    file_names = [arg for arg in args if os.path.isfile(arg)]
-    dir_names = [arg for arg in args if os.path.isdir(arg)] if args else [os.curdir]
-    return flags, file_names, dir_names
+    args = parser.parse_args()
+    file_names = [arg for arg in args.files if os.path.isfile(arg)]
+    dir_names = [arg for arg in args.files if os.path.isdir(arg)] if args else [os.curdir]
+    return args, file_names, dir_names
 
 
 class TextModel(autocrc.Model):
