@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2007 Jonas Bengtsson
+# Copyright 2007-2008 Jonas Bengtsson
 
 # This file is part of autocrc.
 
@@ -18,75 +18,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 "A commandline interface to autocrc"
-import os, sys, getopt
+import os, sys, optparse
 import autocrc
 
-def version():
-    "Prints version information"
-    print("autocrc v0.4")
-
-def usage():
-    "Prints usage information"
-    print("Usage:", sys.argv[0], "[OPTION]... [FILE]...")
-    print("""\
-CRC-check FILEs.
-If no files are given, CRC-checks are performed on all the files in the working
-directory.
-
-Mandatory arguments to long options are mandatory for short options too.
-  -r\t--recursive\t CRC-check recursively
-  -i\t--ignore-case\t Ignore case for filenames parsed from sfv-files
-  -x\t--exchange\t Interpret \\ as / for filenames parsed from sfv-files
-\t\t\t   Has no effect on Windows-like systems
-  -c\t--no-crc\t Do not parse CRC-sums from filenames
-  -s\t--no-sfv\t Do not parse CRC-sums from sfv-files
-  -C\t--directory=DIR\t Use DIR as the working directory
-  -L\t--follow\t Follow symbolic links
-  -v\t--verbose\t Print the calculated CRC and the CRC it was compared against
-\t\t\t   when mismatches occurs
-  -q\t--quiet\t\t Only print error messages and summaries
-    \t--version\t Print version information and exit
-  -h\t--help\t\t Print this help and exit
-  
-Exit status is 0 if everything was OK, 1 if a CRC mismatch occured, 2 if files
-were missing, 4 if read errors occured. If several errors occured the exit 
-status is the sum of the error numbers. For catastrophic failures the exit
-status is 255.""")
-
-class TextFlags(autocrc.Flags):
+class TextParser(autocrc.AutoParser):
     "Flags for the commandline interface"
-    def __init__(self, help=False, version=False, quiet=False, verbose=False):
+    def __init__(self):
         super().__init__()
-        self.help = help
-        self.version = version
-        self.quiet = quiet
-        self.verbose = verbose
 
-    def parseopt(self, opt, optarg):
-        "Parses the options specific for a commandline interface"
-        if opt in ['-h', '--help']:
-            usage()
-            sys.exit(0)
-        elif opt in ['--version']:
-            version()
-            sys.exit(0)
-        elif opt in ['-q', '--quiet']:
-            self.quiet = True
-        elif opt in ['-v', '--verbose']:
-            self.verbose = True
-
-    def parsetextcommandline(self):
-        "Parses a commandline specific for the commandline interface"
-        return super().parsecommandline('hvq', 
-	    ['help', 'version', 'quiet', 'verbose'])
+        self.add_option("-q", "--quiet", action="store_true",
+            help="Only print error messages and summaries")
+        self.add_option("-v", "--verbose", action="store_true",
+            help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
 
 class TextModel(autocrc.Model):
-    "Text output"
-    def __init__(self, flags, dirnames, fnames):
-        super().__init__(flags, dirnames, fnames)
-
-        self.dirstat = None
-
     def filemissing(self, filename):
         "Print that a file is missing"
         self.fileprint(filename, "No such file")
@@ -114,7 +59,11 @@ class TextModel(autocrc.Model):
     def directorystart(self, dirname, dirstat):
         "Print that the CRC-checking of a directory has started"
         self.dirstat = dirstat
-        print("Current directory:", os.path.normpath(dirname))
+        if dirname == os.curdir:
+            dirname = os.path.abspath(dirname)
+        else:
+            dirname = os.path.normpath(dirname)
+        print("Current directory:", dirname)
 
     def directoryend(self):
         "Print a summary of a directory."
@@ -124,9 +73,9 @@ class TextModel(autocrc.Model):
             print("Everything OK")
         else:
             print("Errors occured")
-        print(\
+        print(
              "Tested {0} files, Successful {1}, " \
-             "Different {2}, Missing {3}, Read errors {4}\n".format(\
+             "Different {2}, Missing {3}, Read errors {4}\n".format(
                      self.dirstat.nrfiles, self.dirstat.nrsuccessful,
                      self.dirstat.nrdifferent, self.dirstat.nrmissing,
                      self.dirstat.nrreaderrors))
@@ -153,24 +102,22 @@ class TextModel(autocrc.Model):
             (self.totalstat.nrreaderrors > 0) * 4)
 
     def fileprint(self, filename, status):
-      padlen = max(0, 77 - len(filename))
-      print("{0} {1:>{2}}".format(filename, status, padlen))
+        padlen = max(0, 77 - len(filename))
+        normfname = os.path.normpath(filename)
+        print("{0} {1:>{2}}".format(normfname, status, padlen))
 
 def main():
     "The main function"
     try:
-        flags = TextFlags()
-        fnames, dirnames = flags.parsetextcommandline()
+        parser = TextParser()
+        flags, fnames, dirnames = parser.parse_args()
+        parser.destroy()
         model = TextModel(flags, fnames, dirnames)
         model.run()
 
-    except getopt.GetoptError as eobj:
-        print("autocrc:", eobj.msg, file=sys.stderr)
-        print("Try", sys.argv[0], "-h for more information", file=sys.stderr)
-        sys.exit(255)
     except OSError as eobj:
         print("autocrc:", eobj.filename + ":", eobj.strerror, file=sys.stderr)
-        sys.exit(255)
+        sys.exit(8)
     except KeyboardInterrupt: pass
 
 if __name__ == '__main__':

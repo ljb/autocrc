@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2007 Jonas Bengtsson
+# Copyright 2007-2008 Jonas Bengtsson
 
 # This file is part of autocrc.
 
@@ -21,116 +21,35 @@
 The core of autocrc. Performes the CRC-checks independent of what kind
 of interface is used
 """
-import os, sys, re, zlib, getopt
+import os, sys, re, zlib, mmap, optparse
 
-def parse(filename):
-    "Returns the CRC parsed from the filename or None if no CRC is found"
-    crc = re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', filename) or \
-        re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', filename) or \
-        re.match(r'.*?_([a-fA-F0-9]{8})_.*?$', filename)
-    if crc:
-        return crc.group(1).upper()
+class AutoParser(optparse.OptionParser):
+    "Parse flags from the commandline"
+    def __init__(self):
+        super().__init__(usage="%prog [OPTION]... [FILE]...",
+            version="%prog v0.4")
 
-def parseline(line, exchange=False):
-    "Parses a line from a sfv-file, returns a filename crc tuple"
-    match =  re.match(r'([^\;]+)\s([a-fA-F0-9]{8})\s*$', line)
-    if match:
-        # Make Windows directories into Unix directories
-        if exchange:
-            return match.group(1).replace('\\', '/'), match.group(2).upper()
-        else:
-            return match.group(1), match.group(2).upper()
+        self.add_option("-r", "--recursive", action="store_true",
+            help="CRC-check recursively")
+        self.add_option("-i", "--ignore-case", action="store_true",
+            dest="case", help="ignore case for filenames parsed from sfv-files")
+        self.add_option("-x", "--exchange", action="store_true",
+            help="interpret \\ as / for filenames parsed from sfv-files")
+        self.add_option("-c", "--no-crc", action="store_false", dest="crc",
+            default=True,help="do not parse CRC-sums from filenames")
+        self.add_option("-s", "--no-sfv", action="store_false", dest="sfv",
+            default=True,help="do not parse CRC-sums from sfv-files")
+        self.add_option("-C", "--directory",
+            metavar="DIR", help="use DIR as the working directory")
+        self.add_option("-L", "--follow", action="store_true",
+            help="follow symbolic directory links in recursive mode")
 
-def getcrcs(dirname, fnames, flags):
-    "Returns a dict with filename, crc pairs"
-    oldcwd = os.getcwd()
-    os.chdir(dirname)
-
-    files = [fname for fname in fnames if os.path.isfile(fname)]
-    sfvfiles = [fname for fname in files if fname.lower().endswith('.sfv')]
-    crcs = {}
-
-    #If case is to be ignore, build a dictionary with mappings from 
-    #filenames with lowercase to the filenames with the real case
-    if not flags.case:
-        no_case_files = {}
-
-        for fname in files:
-            no_case_files[fname.lower()] = fname
-
-    if sfvfiles and flags.sfv:
-        #Proper sfv-files are encoded with ASCII, but using latin1 won't
-	#hurt since it's backward compatible
-        for sfvfile in sfvfiles:
-            fobj = open(sfvfile, 'r', encoding='latin1')
-            for line in fobj:
-                result = parseline(line, flags.exchange)
-                if result:
-                    fname, crc = result
-                    if not flags.case and fname.lower() in no_case_files:
-                        normfname = os.normpath(no_case_files[fname.lower()])
-                        crcs[normfname] = crc
-                    else:
-                        crcs[os.path.normpath(fname)] = crc
-        fobj.close()
-
-    if flags.crc:
-        for fname in files:
-            crc = parse(fname)
-            if crc:
-                crcs[fname] = crc
-
-    os.chdir(oldcwd)
-    return crcs
-
-class Flags:
-    "Contains flags that determine how CRC-cheking is done"
-    def __init__(self, recursive=False, case=True, exchange=False, 
-            sfv=True, crc=True, follow=False, directory=None):
-        self.recursive = recursive
-        self.case = case
-        self.exchange = exchange
-        self.sfv = sfv
-        self.crc = crc
-        self.follow = follow
-
-    def parseopt(self, opt, optarg):
-        "Allows subclasses to define new options"
-        pass
-
-    def parsecommandline(self, shortopts, longopts):
-        """
-        Parses arguments and switches from sys.argv and sets variables.
-        Returns a tuple of a filename and a directory lists
-        """
-        longopts.extend(['recursive', 'ignore-case', 
-                         'exchange', 'no-crc', 'no-sfv', 'follow'])
-        shortopts += 'rixcsLC:'
-        opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
-
-        for opt, optarg in opts:
-            if opt in ['-r', '--recursive']:
-                self.recursive = True
-            elif opt in ['-i', '--ignore-case']:
-                self.case = False
-            elif opt in ['-x', '--exchange']:
-                self.exchange = True
-            elif opt in ['-c', '--no-crc']:
-                self.crc = False
-            elif opt in ['-s', '--no-sfv']:
-                self.sfv = False
-            elif opt in ['-L', '--follow']:
-                self.follow = True
-            elif opt in ['-C','--directory']:
-                os.chdir(optarg)
-            else:
-                self.parseopt(opt, optarg)
-
+    def parse_args(self):
+        flags, args = super().parse_args()
         fnames = [arg for arg in args if os.path.isfile(arg)]
-	dirnames = [arg for arg in args if os.path.isdir(arg)] if args 
-              else [os.getcwd()]
-
-        return fnames, dirnames
+        dirnames = [arg for arg in args if os.path.isdir(arg)] if args \
+              else [os.curdir]
+        return flags, fnames, dirnames
 
 class Status:
     "Contains status information"
@@ -157,34 +76,95 @@ class Status:
 
 class Model:
     "An abstract model. Subclasses decides how the output is presented"
-    def __init__(self, flags=None, fnames=None, dirnames=None, blocksize=8192):
-        self.fnames = fnames or []
-        self.dirnames = dirnames or []
-        self.flags = flags or Flags()
+    def __init__(self, flags, fnames=[], dirnames=[], blocksize=8192):
+        self.flags = flags
+        self.fnames = fnames
+        self.dirnames = dirnames
         self.blocksize = blocksize
         self.totalstat = Status()
+
+    def parse(self, filename):
+        "Returns the CRC parsed from the filename or None if no CRC is found"
+        crc = re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', filename) or \
+            re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', filename) or \
+            re.match(r'.*?_([a-fA-F0-9]{8})_.*?$', filename)
+        if crc:
+            return crc.group(1).upper()
+
+    def parseline(self, line):
+        "Parses a line from a sfv-file, returns a filename crc tuple"
+        match =  re.match(r'([^\;]+)\s([a-fA-F0-9]{8})\s*$', line)
+        if match:
+            # Make Windows directories into Unix directories
+            if self.flags.exchange:
+                return match.group(1).replace('\\', '/'), match.group(2).upper()
+            else:
+                return match.group(1), match.group(2).upper()
+
+    def getcrcs(self, dirname, fnames):
+        "Returns a dict with filename, crc pairs"
+        oldcwd = os.getcwd()
+        os.chdir(dirname)
+
+        files = [fname for fname in fnames if os.path.isfile(fname)]
+        sfvfiles = [fname for fname in files if fname.lower().endswith('.sfv')]
+        crcs = {}
+
+        #If case is to be ignore, build a dictionary with mappings from 
+        #filenames with lowercase to the filenames with the real case
+        if not self.flags.case:
+            no_case_files = {}
+
+            for fname in files:
+                no_case_files[fname.lower()] = fname
+
+        if sfvfiles and self.flags.sfv:
+            for sfvfile in sfvfiles:
+                fobj = open(sfvfile, 'r', errors='replace')
+                for line in fobj:
+                    result = self.parseline(line)
+                    if result:
+                        fname, crc = result
+                        if not self.flags.case and fname.lower() in no_case_files:
+                            crcs[no_case_files[fname.lower()]] = crc
+                        else:
+                            crcs[fname] = crc
+
+        if self.flags.crc:
+            for file in files:
+                crc = self.parse(file)
+                if crc:
+                    crcs[file] = crc
+
+        os.chdir(oldcwd)
+        return crcs
 
     def crc32_of_file(self, filepath):
         "Returns the CRC of the file filepath"
 
-        fileobj = open(filepath, 'rb')
+        fileobj = open(filepath, 'r+')
+        mapobj = mmap.mmap(fileobj.fileno(), 0, access=mmap.ACCESS_READ)
+#        current = zlib.crc32(mapobj)
+
+#        fileobj = open(filepath, 'rb')
         self.filestart(fileobj)
 
         current = 0
         while True:
-            self.blockread()
-            buf = fileobj.read(self.blocksize)
+            buf = mapobj.read(self.blocksize)
             if not buf:
                 break
             current = zlib.crc32(buf, current)
+            self.blockread()
         fileobj.close()
+        mapobj.close()
 
 	#Remove everything except the last 32 bits, including the leading 0x
         return hex(current&0xFFFFFFFF)[2:].upper().zfill(8)
 
     def checkdir(self, dirname, fnames):
         "CRC-check the files in a directory"
-        crcs = getcrcs(dirname, fnames, self.flags)
+        crcs = self.getcrcs(dirname, fnames)
 
         if crcs:
             dirstat = Status(len(crcs))
@@ -257,19 +237,21 @@ class Model:
 
         self.start()
 
-        if self.fnames:
-            #Mapping from a directory name to a list with the files that are
-            #to be CRC-checked in that directory
-            dirfilemap = {}
-            for fname in self.fnames:
-                head, tail = os.path.split(fname)
-                head = os.path.abspath(head)
-                if not dirfilemap.has_key(head):
-                    dirfilemap[head] = []
-                dirfilemap[head].append(tail)
+        if self.flags.directory:
+            os.chdir(self.flags.dirname)
 
-            for dirname, fnames in dirfilemap.items():
-                self.checkdir(dirname, fnames)
+        #Mapping from a directory name to a list with the files that are
+        #to be CRC-checked in that directory
+        dirfilemap = {}
+        for fname in self.fnames:
+            head, tail = os.path.split(fname)
+            head = os.path.abspath(head)
+            if head not in dirfilemap:
+                dirfilemap[head] = []
+            dirfilemap[head].append(tail)
+
+        for dirname, fnames in dirfilemap.items():
+            self.checkdir(dirname, fnames)
 
         for dirname in self.dirnames:
             if self.flags.recursive:
