@@ -40,7 +40,7 @@ def main():
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--version", action='version', version='%(prog)s v0.4')
+    parser.add_argument("--version", action='version', version='%(prog)s v1.0')
     parser.add_argument("-r", "--recursive", action="store_true",
                         help="CRC-check recursively")
     parser.add_argument("-i", "--ignore-case", action="store_false",

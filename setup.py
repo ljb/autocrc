@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='autocrc',
-      version='1.4',
+      version='1.0',
       author='Jonas Bengtsson',
       description='Automated CRC-checking',
       author_email='jonas@bengtsson.cc',
