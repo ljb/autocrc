@@ -1,7 +1,0 @@
-- Create Windows binaries
-- Improve the way --quite works
-- More consequent treatment of paths in the console interface, at the moment
-  it's not well defined when it prints absolute paths and when it prints
-  relative paths
-- Improve the part that parses CRC-sums from filenames, support for
-  CRCs missing the leading zeroes.
