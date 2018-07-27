@@ -17,108 +17,117 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"A commandline interface to autocrc"
-import os, sys, optparse
-import autocrc
+"""A commandline interface to autocrc"""
+import os
+import sys
+
+from . import autocrc
+
 
 class TextParser(autocrc.AutoParser):
-    "Flags for the commandline interface"
+    """Flags for the commandline interface"""
+
     def __init__(self):
         super().__init__()
 
         self.add_option("-q", "--quiet", action="store_true",
-            help="Only print error messages and summaries")
+                        help="Only print error messages and summaries")
         self.add_option("-v", "--verbose", action="store_true",
-            help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
+                        help="Print the calculated CRC and the CRC it was compared against when mismatches occurs")
+
 
 class TextModel(autocrc.Model):
-    def filemissing(self, filename):
-        "Print that a file is missing"
-        self.fileprint(filename, "No such file")
+    def file_missing(self, filename):
+        """Print that a file is missing"""
+        self.file_print(filename, "No such file")
 
-    def fileok(self, filename):
-        "Print that a CRC-check was successful if quiet is false"
+    def file_ok(self, filename):
+        """Print that a CRC-check was successful if quiet is false"""
         if not self.flags.quiet:
-            self.fileprint(filename, "OK")
+            self.file_print(filename, "OK")
 
-    def filedifferent(self, filename, crc, realcrc):
+    def file_different(self, filename, crc, real_crc):
         """
         Print that a CRC-check failed. 
         If verbose is set then the CRC calculated and the CRC that it was 
         compared against is also printed
         """
         if self.flags.verbose:
-            self.fileprint(filename, realcrc + " != " + crc)
+            self.file_print(filename, real_crc + " != " + crc)
         else:
-            self.fileprint(filename, "CRC mismatch")
-		
-    def filereaderror(self, filename):
-        "Print that a read error occured"
-        self.fileprint(filename, "Read error")
+            self.file_print(filename, "CRC mismatch")
 
-    def directorystart(self, dirname, dirstat):
-        "Print that the CRC-checking of a directory has started"
-        self.dirstat = dirstat
+    def file_read_error(self, filename):
+        """Print that a read error occurred"""
+        self.file_print(filename, "Read error")
+
+    def directory_start(self, dirname, dir_stat):
+        """Print that the CRC-checking of a directory has started"""
+        self.dir_stat = dir_stat
         if dirname == os.curdir:
             dirname = os.path.abspath(dirname)
         else:
             dirname = os.path.normpath(dirname)
         print("Current directory:", dirname)
 
-    def directoryend(self):
-        "Print a summary of a directory."
-        print("-"*80)
+    def directory_end(self):
+        """Print a summary of a directory."""
+        print("-" * 80)
 
-        if self.dirstat.everythingok():
+        if self.dir_stat.everything_ok():
             print("Everything OK")
         else:
-            print("Errors occured")
+            print("Errors occurred")
         print(
-             "Tested {0} files, Successful {1}, " \
-             "Different {2}, Missing {3}, Read errors {4}\n".format(
-                     self.dirstat.nrfiles, self.dirstat.nrsuccessful,
-                     self.dirstat.nrdifferent, self.dirstat.nrmissing,
-                     self.dirstat.nrreaderrors))
+            "Tested {0} files, Successful {1}, "
+            "Different {2}, Missing {3}, Read errors {4}\n".format(
+                self.dir_stat.nr_files, self.dir_stat.nr_successful,
+                self.dir_stat.nr_different, self.dir_stat.nr_missing,
+                self.dir_stat.nr_read_errors))
 
     def end(self):
-        "Print a total summary if more than one directory was scanned"
-        if self.totalstat.nrfiles == 0:
+        """Print a total summary if more than one directory was scanned"""
+        if self.total_stat.nr_files == 0:
             print("No CRC-sums found")
-        
-        elif self.totalstat.nrdirs > 1:
-            if self.totalstat.everythingok():
+
+        elif self.total_stat.nr_dirs > 1:
+            if self.total_stat.everything_ok():
                 print("Everything OK")
             else:
-                print("Errors Occured")
-            print("  Tested\t", self.totalstat.nrfiles, "files")
-            print("  Successful\t", self.totalstat.nrsuccessful, "files")
-            print("  Different\t", self.totalstat.nrdifferent, "files")
-            print("  Missing\t", self.totalstat.nrmissing, "files")
-            print("  Read Errors\t", self.totalstat.nrreaderrors, "files")
+                print("Errors Occurred")
+            print("  Tested\t", self.total_stat.nr_files, "files")
+            print("  Successful\t", self.total_stat.nr_successful, "files")
+            print("  Different\t", self.total_stat.nr_different, "files")
+            print("  Missing\t", self.total_stat.nr_missing, "files")
+            print("  Read Errors\t", self.total_stat.nr_read_errors, "files")
 
-        #Set the exit status to the value explained in usage()
-        sys.exit((self.totalstat.nrdifferent > 0) + 
-            (self.totalstat.nrmissing > 0) * 2 +
-            (self.totalstat.nrreaderrors > 0) * 4)
+        # Set the exit status to the value explained in usage()
+        sys.exit((self.total_stat.nr_different > 0) +
+                 (self.total_stat.nr_missing > 0) * 2 +
+                 (self.total_stat.nr_read_errors > 0) * 4)
 
-    def fileprint(self, filename, status):
-        padlen = max(0, 77 - len(filename))
-        normfname = os.path.normpath(filename)
-        print("{0} {1:>{2}}".format(normfname, status, padlen))
+    @staticmethod
+    def file_print(filename, status):
+        pad_len = max(0, 77 - len(filename))
+        norm_file_name = os.path.normpath(filename)
+        print("{0} {1:>{2}}".format(norm_file_name, status, pad_len))
+
 
 def main():
-    "The main function"
+    """The main function"""
     try:
         parser = TextParser()
-        flags, fnames, dirnames = parser.parse_args()
+        flags, file_names, dir_names = parser.parse_args()
         parser.destroy()
-        model = TextModel(flags, fnames, dirnames)
+        model = TextModel(flags, file_names, dir_names)
         model.run()
 
-    except OSError as eobj:
-        print("autocrc:", eobj.filename + ":", eobj.strerror, file=sys.stderr)
+    except OSError as e:
+        print("autocrc: {}: {}".format(e.filename, e.strerror), file=sys.stderr)
         sys.exit(8)
-    except KeyboardInterrupt: pass
+    except KeyboardInterrupt:
+        pass
+
 
 if __name__ == '__main__':
     main()
