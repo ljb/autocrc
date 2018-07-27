@@ -228,7 +228,6 @@ class OutputList(wx.ListCtrl,
         if colour:
             self.SetItemBackgroundColour(index, colour)
 
-
     def GetListCtrl(self):
         return self
 
@@ -275,10 +274,6 @@ class DirectoryPanel(wx.Panel, wx.FileDropTarget):
         for urlname in urlnames:
             #Some filemanagers uses paths that are encoded as urls
             fname = urllib.unquote_plus(urlname)
-	    #Internally autocrc works with ascii. Future versions of autocrc
-	    #should work with unicode internally
-            if type(fname) is unicode:
-                fname = fname.encode('latin1','replace')
             if os.path.isfile(fname):
                 self.fnames.add(fname)
             elif os.path.isdir(fname):

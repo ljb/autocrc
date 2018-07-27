@@ -1,9 +1,9 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 from distutils.core import setup
 
 setup(name='autocrc',
-        version='1.3',
+        version='1.4',
         author='Jonas Bengtsson',
         description = 'Automated CRC-checking',
         author_email='jonasb@linux.se',

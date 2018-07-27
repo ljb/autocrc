@@ -23,7 +23,7 @@ import autocrc
 
 def version():
     "Prints version information"
-    print "autocrc v0.3"
+    print "autocrc v0.4"
 
 def usage():
     "Prints usage information"
@@ -40,27 +40,26 @@ Mandatory arguments to long options are mandatory for short options too.
 \t\t\t   Has no effect on Windows-like systems
   -c\t--no-crc\t Do not parse CRC-sums from filenames
   -s\t--no-sfv\t Do not parse CRC-sums from sfv-files
-  -d\t--directory=DIR\t Use DIR as the working directory
-  -v\t--verbose\t Print the calculated CRC and the CRC it was compared aginst
+  -C\t--directory=DIR\t Use DIR as the working directory
+  -L\t--follow\t Follow symbolic links
+  -v\t--verbose\t Print the calculated CRC and the CRC it was compared against
 \t\t\t   when mismatches occurs
   -q\t--quiet\t\t Only print error messages and summaries
     \t--version\t Print version information and exit
   -h\t--help\t\t Print this help and exit
   
 Exit status is 0 if everything was OK, 1 if a CRC mismatch occured, 2 if files
-are missing, 4 if read errors occured. If several errors occured the exit 
+were missing, 4 if read errors occured. If several errors occured the exit 
 status is the sum of the error numbers. For catastrophic failures the exit
 status is 255."""
 
 class TextFlags(autocrc.Flags):
     "Flags for the commandline interface"
-    def __init__(self, fhelp=False, fversion=False, quiet=False, 
-            directory=None, verbose=False):
+    def __init__(self, help=False, version=False, quiet=False, verbose=False):
         autocrc.Flags.__init__(self)
-        self.help = fhelp
-        self.version = fversion
+        self.help = help
+        self.version = version
         self.quiet = quiet
-        self.directory = directory or os.getcwd()
         self.verbose = verbose
 
     def parseopt(self, opt, optarg):
@@ -75,31 +74,27 @@ class TextFlags(autocrc.Flags):
             self.quiet = True
         elif opt in ['-v', '--verbose']:
             self.verbose = True
-        elif opt in ['-d', '--directory']:
-            os.chdir(optarg)
 
     def parsetextcommandline(self):
         "Parses a commandline specific for the commandline interface"
-        return autocrc.Flags.parsecommandline(self, 'hvqd:', 
-			['help', 'version', 'quiet', 'directory=', 'verbose'])
+        return autocrc.Flags.parsecommandline(self, 'hvq:', 
+			['help', 'version', 'quiet', 'verbose'])
 
 class TextModel(autocrc.Model):
     "Text output"
-    def __init__(self, flags, dirnames, fnames, out=sys.stdout):
+    def __init__(self, flags, dirnames, fnames):
         autocrc.Model.__init__(self, flags, dirnames, fnames)
 
-        self.out = out
         self.dirstat = None
 
     def filemissing(self, filename):
         "Print that a file is missing"
-        print >> self.out, "%s%*s" % \
-                (filename, 78 - len(filename), "No such file")
+        print "%s%*s" % (filename, 78 - len(filename), " No such file")
 
     def fileok(self, filename):
         "Print that a CRC-check was successful if quiet is false"
         if not self.flags.quiet:
-            print >> self.out, "%s%*s" % (filename, 78 - len(filename), " OK")
+            print "%s%*s" % (filename, 78 - len(filename), " OK")
 
     def filedifferent(self, filename, crc, realcrc):
         """
@@ -108,27 +103,29 @@ class TextModel(autocrc.Model):
         compared against is also printed
         """
         if self.flags.verbose:
-            print >> self.out, "%s%*s" % \
-            (filename, 78 - len(filename), " " + realcrc + " != " + crc)
+            print "%s%*s" % \
+                (filename, 78 - len(filename), " " + realcrc + " != " + crc)
         else:
-            print >> self.out, "%s%*s" % \
-                (filename, 78 - len(filename), " CRC mismatch")
+            print "%s%*s" % (filename, 78 - len(filename), " CRC mismatch")
+		
+    def filereaderror(self, filename):
+        "Print that a read error occured"
+        print "%s%*s" % (filename, 78 - len(filename), " Read error")
 
     def directorystart(self, dirname, dirstat):
         "Print that the CRC-checking of a directory has started"
         self.dirstat = dirstat
-        print >> self.out, "Current directory: %s" % \
-                os.path.normpath(dirname)
+        print "Current directory: %s" % os.path.normpath(dirname)
 
     def directoryend(self):
         "Print a summary of a directory. Has to be called  that was directory"
-        print >> self.out, "-"*80
+        print "-"*80
 
         if self.dirstat.everythingok():
-            print >> self.out, "Everything OK"
+            print "Everything OK"
         else:
-            print >> self.out, "Errors occured"
-        print >> self.out, \
+            print "Errors occured"
+        print \
              "Tested %d files, Successful %d, " \
              "Different %d, Missing %d, Read errors %d\n" % \
              (self.dirstat.nrfiles, self.dirstat.nrsuccessful, 
@@ -138,23 +135,20 @@ class TextModel(autocrc.Model):
     def end(self):
         "Print a total summary if more than one directory was scanned"
         if self.totalstat.nrfiles == 0:
-            print >> self.out, "No CRC-sums found"
+            print "No CRC-sums found"
         
         elif self.totalstat.nrdirs > 1:
             if self.totalstat.everythingok():
-                print >> self.out, "Everything OK"
+                print "Everything OK"
             else:
-                print >> self.out, "Errors Occured"
-            print >> self.out, "  Tested\t %d files" % self.totalstat.nrfiles 
-            print >> self.out, "  Successful\t %d files" % \
-                    self.totalstat.nrsuccessful
-            print >> self.out, "  Different\t %d files" % \
-                    self.totalstat.nrdifferent
-            print >> self.out, "  Missing\t %d files" % self.totalstat.nrmissing
-            print >> self.out, "  Read Errors\t %d files" % \
-                    self.totalstat.nrreaderrors
+                print "Errors Occured"
+            print "  Tested\t %d files" % self.totalstat.nrfiles 
+            print "  Successful\t %d files" % self.totalstat.nrsuccessful
+            print "  Different\t %d files" % self.totalstat.nrdifferent
+            print "  Missing\t %d files" % self.totalstat.nrmissing
+            print "  Read Errors\t %d files" % self.totalstat.nrreaderrors
 
-        #Explained in usage()
+        #Set the exit status. Values Explained in usage()
         sys.exit((self.totalstat.nrdifferent > 0) + 
             (self.totalstat.nrmissing > 0) * 2 +
             (self.totalstat.nrreaderrors > 0) * 4)
