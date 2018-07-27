@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2007-2008 Jonas Bengtsson
+# Copyright 2007-2018 Jonas Bengtsson
 
 # This file is part of autocrc.
 
@@ -26,7 +26,6 @@ from . import autocrc
 
 
 def main():
-    """The main function"""
     try:
         flags, file_names, dir_names = parse_args()
         model = TextModel(flags, file_names, dir_names)

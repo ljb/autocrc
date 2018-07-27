@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2007-2008 Jonas Bengtsson
+# Copyright 2007-2018 Jonas Bengtsson
 
 # This file is part of autocrc.
 
@@ -27,9 +27,7 @@ import re
 import zlib
 
 
-class Status:
-    """Contains status information"""
-
+class StatusInformation:
     def __init__(self, nr_files=0):
         self.nr_missing = 0
         self.nr_different = 0
@@ -60,7 +58,7 @@ class Model:
         self.file_names = file_names or []
         self.dir_names = dir_names or []
         self.block_size = block_size
-        self.total_stat = Status()
+        self.total_stat = StatusInformation()
 
     @staticmethod
     def parse(filename):
@@ -139,7 +137,7 @@ class Model:
         crcs = self.get_crcs(dirname, file_names)
 
         if crcs:
-            dir_stat = Status(len(crcs))
+            dir_stat = StatusInformation(len(crcs))
             self.directory_start(dirname, dir_stat)
 
             for file_name, crc in sorted(crcs.items()):
