@@ -1,0 +1,184 @@
+#!/usr/bin/python
+# Copyright 2007 Jonas Bengtsson
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"Automated CRC-checking"
+import sys, getopt, os, re, zlib
+
+def crc32_of_file(filepath):
+    "Returns the CRC of the file filepath"
+    fileobj = open(filepath, 'rb')
+    current = 0
+    while True:
+        buf = fileobj.read(8192)
+        if not buf:
+            break
+        current = zlib.crc32(buf, current)
+    fileobj.close()
+    return str(hex(current&0xFFFFFFFF))[2:-1].zfill(8).upper()
+
+def parse(filename):
+    "Returns the CRC parsed from the filename or None if a CRC is not found"
+    crc = re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', filename) or \
+          re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', filename) or \
+          re.match(r'.*?_([a-fA-F0-9]{8})_.*?$', filename)
+    if crc:
+        return crc.group(1).upper()
+
+def parseline(line):
+    "Parses a line from a sfv-file, returns a filename crc tuple"
+    match =  re.match(r'([^\;]+)\s([a-fA-F0-9]{8})\s*$', line)
+    if match:
+        # Make Windows directories into Unix directories
+        return match.group(1).replace('\\', '/'), match.group(2).upper()
+
+def getcrcs(dirname, fnames, case):
+    """Returns a dict with filename, crc pairs
+
+    dirname: The directory that is used as working directory
+
+    fnames: The files that crc-sums are parsed from
+
+    case: If filenames parsed from sfv-files should be case-insensitive or not
+    """
+    import fileinput
+
+    oldcwd = os.getcwd()
+    os.chdir(dirname)
+
+    files = filter(os.path.isfile, fnames)
+    sfvfiles = filter(lambda name: name.lower().endswith('.sfv'), files)
+    crcs = {}
+
+    if not case:
+        no_case_files = {}
+
+        for fname in files:
+            no_case_files[fname.lower()] = fname
+
+    if sfvfiles:
+        for line in fileinput.input(sfvfiles):
+            result = parseline(line)
+            if result:
+                fname, crc = result
+                if not case and no_case_files.has_key(fname.lower()):
+                    crcs[os.path.normpath(no_case_files[fname.lower()])] = crc
+                else:
+                    crcs[os.path.normpath(fname)] = crc
+
+    for fname in files:
+        crc = parse(fname)
+        if crc:
+            crcs[fname] = crc
+
+    os.chdir(oldcwd)
+    return crcs
+
+def checkdir(status, dirname, fnames):
+    """CRC-check the files in a directory
+
+    status: Dictionary containing status-information
+
+    dirname: The directory that the crc-checking is performed on
+
+    fnames: The files that are crc-checked in the directory
+    """
+    dirlinks = filter(lambda fname:
+                        os.path.islink(fname) and os.path.isdir(fname), fnames)
+
+    if dirlinks and status["Recursive"]:
+        for dirlink in dirlinks:
+            os.path.walk(dirlink, checkdir, status)
+
+    crcs = getcrcs(dirname, fnames, status["Case"])
+
+    if crcs:
+        nrsuccessful = nrdifferent = nrmissing = 0
+        print "Current directory: %s" % os.path.normpath(dirname)
+        for fname, crc in sorted(crcs.items()):
+            try:
+                realcrc = crc32_of_file(os.path.join(dirname, fname))
+            except IOError, eobj:
+                print "%s%*s" % (fname, 78 - len(fname), " " + eobj.strerror)
+                nrmissing += 1
+            else:
+                if crc == realcrc:
+                    print "%s%*s" % (fname, 78 - len(fname), " OK")
+                    nrsuccessful += 1
+                else:
+                    print "%s%*s" % (fname, 78 - len(fname), " CRC missmatch")
+                    nrdifferent += 1
+
+        print "-"*80
+
+        if nrdifferent == nrmissing == 0:
+            print "Everything OK"
+        else:
+            print "Errors occured"
+        print "Tested %d files, Successful %d, Different %d, Missing %d\n" % \
+                         (len(crcs), nrsuccessful, nrdifferent, nrmissing)
+
+        status["Missing"] += nrmissing
+        status["Successful"] += nrsuccessful
+        status["Different"] += nrdifferent
+        status["Total"] += len(crcs)
+        status["Dirs"] += 1
+
+def main():
+    "The main function"
+
+    opts, args = getopt.gnu_getopt(sys.argv[1:],'rI')
+    recursive = ('-r','') in opts
+    case = ('-I','') in opts
+    status = {"Total":0, "Missing":0, "Successful":0, "Different":0,
+              "Dirs":0,"Recursive":recursive,"Case":case}
+               #Ugly to include Recursive and Case here
+               #Better to use global variables?
+
+    if args:
+        fnames = filter(os.path.isfile, args)
+        checkdir(status, os.getcwd(), fnames)
+        dirnames = filter(os.path.isdir, args)
+    else:
+        dirnames = [os.getcwd()]
+
+    for dirname in dirnames:
+        if recursive:
+            os.path.walk(dirname, checkdir, status)
+        else:
+            checkdir(status, dirname, os.listdir(dirname))
+
+    #Print a summary if more than one directory contained files with crcs
+    if status["Dirs"] > 1:
+        if status["Missing"] == status["Different"] == 0:
+            print "Everything OK"
+        else:
+            print "Errors Occured"
+        print "  Tested\t %d files" % status["Total"]
+        print "  Successful\t %d files" % status["Successful"]
+        print "  Different\t %d files" % status["Different"]
+        print "  Missing\t %d files" % status["Missing"]
+
+if __name__ == '__main__':
+    try:
+        main()
+    except getopt.GetoptError:
+        sys.stderr.write("autocrc v0.1\n")
+        sys.stderr.write("Usage: autocrc [-r] [-I] [files]\n")
+        sys.stderr.write("  -r\t\t CRC-check recursivly\n")
+        sys.stderr.write("  -I\t\t Do not ignore case for filenames parsed "
+                         "from sfv-files\n")
+        sys.exit(255)
+    except KeyboardInterrupt: pass

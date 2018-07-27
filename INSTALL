@@ -1,0 +1,4 @@
+Move or copy autocrc to a directory in your $PATH.
+Change it's permission to executable if necessary.
+If the Python interpreter isn't located at /usr/bin/python the
+first line of autocrc also has to be changed to the correct location.

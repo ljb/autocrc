@@ -1,0 +1,8 @@
+Depends on: Python 2.4
+
+Usage: autocrc [-r] [-I] [files]
+  -r		 CRC-check recursivly
+  -I		 Do not ignore case for filenames parsed from sfv-files
+
+Note: The way the output is formated is heavily influenced by pure-sfv,
+a great sfv-checking program.
