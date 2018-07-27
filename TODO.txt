@@ -1,0 +1,10 @@
+- Create Windows binaries
+- Add more switches
+- Add special treatment for read errors, at the moment they are treated as 
+  missing files
+- Improve the part that parses CRC-sums from filenames, support for
+  CRCs missing the leading zeroes.
+- Imporove the way --quite works
+- A more objectoriented design. Replace print statements with calls to an
+  object that decieds how the output is to be presented
+- Create a gui

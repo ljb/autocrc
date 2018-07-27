@@ -1,0 +1,15 @@
+Unix/Linux:
+Move or copy autocrc.py to a directory in your $PATH.
+Change it's permission to executable if necessary.
+If the env executable isn't located in /usr/bin or if the Python interpreter 
+isn't named python, the first line of autocrc also has to be modified.
+
+Windows:
+Create the directory C:\Program Files\autocrc
+Move autocrc.py to C:\Program Files\autocrc
+Add C:\Program Files\autocrc to your Path
+
+To add C:\Program Files\autocrc to the Path
+open Control Panel->system->Advanced->Environmental Variables
+choose Path in System variables and press Edit.
+Append ;C\Program Files\autocrc; to the Variable value box.
