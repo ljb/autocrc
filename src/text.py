@@ -23,7 +23,7 @@ import autocrc
 
 def version():
     "Prints version information"
-    print "autocrc v0.2"
+    print "autocrc v0.3"
 
 def usage():
     "Prints usage information"
@@ -49,7 +49,7 @@ Mandatory arguments to long options are mandatory for short options too.
   
 Exit status is 0 if everything was OK, 1 if a CRC mismatch occured, 2 if files
 are missing, 4 if read errors occured. If several errors occured the exit 
-status is the sum of the error numbers. For catastrofic failures the exit
+status is the sum of the error numbers. For catastrophic failures the exit
 status is 255."""
 
 class TextFlags(autocrc.Flags):
@@ -117,9 +117,8 @@ class TextModel(autocrc.Model):
     def directorystart(self, dirname, dirstat):
         "Print that the CRC-checking of a directory has started"
         self.dirstat = dirstat
-        if not self.flags.quiet:
-            print >> self.out, "Current directory: %s" % \
-                    os.path.normpath(dirname)
+        print >> self.out, "Current directory: %s" % \
+                os.path.normpath(dirname)
 
     def directoryend(self):
         "Print a summary of a directory. Has to be called  that was directory"

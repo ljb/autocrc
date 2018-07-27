@@ -45,6 +45,7 @@ class StartEvent(wx.PyEvent):
         self.SetEventType(EVT_START_ID)
         self.totalnrfiles = totalnrfiles
 
+
 class EndEvent(wx.PyEvent):
     "Generated when the CRC-checking has finished"
     def __init__(self, everythingok):
@@ -187,8 +188,8 @@ class CheckPanel(wx.Panel):
         rightsizer.Add(self.casebox)
         
         if sys.platform.startswith('win'):
-            casebox.hide()
-            exchangebox.hide()
+            self.casebox.Hide()
+            self.exchangebox.Hide()
         
         self.SetSizer(sizer)
 
@@ -210,9 +211,9 @@ class OutputList(wx.ListCtrl,
         self.InsertColumn(0, "Directory")
         self.InsertColumn(1, "File")
         self.InsertColumn(2, "Status")
-        self.SetColumnWidth(0, 300)
-        self.SetColumnWidth(1, 300)
-        self.SetColumnWidth(2, 50)
+        self.SetColumnWidth(0, 200)
+        self.SetColumnWidth(1, 400)
+        self.SetColumnWidth(2, 100)
         self.itemDataMap = {}
 
     def update(self, dirname, fname, status, colour):        
@@ -274,6 +275,10 @@ class DirectoryPanel(wx.Panel, wx.FileDropTarget):
         for urlname in urlnames:
             #Some filemanagers uses paths that are encoded as urls
             fname = urllib.unquote_plus(urlname)
+	    #Internally autocrc works with ascii. Future versions of autocrc
+	    #should work with unicode internally
+            if type(fname) is unicode:
+                fname = fname.encode('latin1','replace')
             if os.path.isfile(fname):
                 self.fnames.add(fname)
             elif os.path.isdir(fname):
@@ -291,14 +296,22 @@ class DirectoryPanel(wx.Panel, wx.FileDropTarget):
         dialog = wx.DirDialog(self, style=wx.DD_DIR_MUST_EXIST)
 
         if dialog.ShowModal() == wx.ID_OK:
-            self.dirnames.add(dialog.GetPath())
+            dirname = dialog.GetPath()
+            if type(dirname) is unicode:
+                dirname = dirname.encode('latin1','replace')
+            self.dirnames.add(dirname)
         self.label.update()
 
     def OnFileButton(self, event):
         dialog = wx.FileDialog(self, style=wx.FD_MULTIPLE | wx.FD_CHANGE_DIR)
 
         if dialog.ShowModal() == wx.ID_OK:
-            self.fnames.update(dialog.GetFilenames())
+            fnames = dialog.GetFilenames()
+            for fname in fnames:
+                if not type(fname) is unicode:
+                    break
+                fname = fname.encode('latin1','replace')
+            self.fnames.update(fnames)
         self.label.update()
 
 class Gui(wx.Frame):
@@ -409,7 +422,7 @@ class Gui(wx.Frame):
 
 def main():
     app = wx.App()
-    frame = Gui(None, title="autocrc", size=(650, 700))
+    frame = Gui(None, title="autocrc", size=(700, 700))
     frame.Show()
     app.MainLoop()
 

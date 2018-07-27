@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 from distutils.core import setup
 
@@ -10,7 +10,7 @@ setup(name='autocrc',
         package_dir = {'autocrc' : 'src'},
         packages = ['autocrc'],
         url='http://sourceforge.net/projects/autocrc',
-        scripts = ['script/autocrc', 'script/gautocrc'],
+        scripts = ['scripts/autocrc', 'scripts/gautocrc'],
         license="GPLv3",
         long_description = """
         autocrc uses 32-bit CRC-sums to verify the integrity of files.

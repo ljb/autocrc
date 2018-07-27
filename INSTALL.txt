@@ -1,15 +1,26 @@
+If you don't want to gui to be installed, remove scripts/gautocrc and 
+src/gui.py. If you don't want the console interface to be installed remove 
+scripts/autocrc and src/text.pyUnix/Linux.
+
 Unix/Linux:
-Move or copy autocrc.py to a directory in your $PATH.
-Change it's permission to executable if necessary.
-If the env executable isn't located in /usr/bin or if the Python interpreter 
-isn't named python, the first line of autocrc also has to be modified.
+In a terminal run:
+python setup.py build
+python setup.py install
 
 Windows:
-Create the directory C:\Program Files\autocrc
-Move autocrc.py to C:\Program Files\autocrc
-Add C:\Program Files\autocrc to your Path
+Rename scripts/autocrc to scripts/autocrc.py
+Rename scripts/gautocrc to scripts/gautocrc.pyw
+In a dos-prompt run:
+setup.py build
+setup.py install
 
-To add C:\Program Files\autocrc to the Path
+If you want to run the console interface you have to add your python scripts
+directory to your path. 
+
+To add C:\Python25\Scripts to the Path:
 open Control Panel->system->Advanced->Environmental Variables
 choose Path in System variables and press Edit.
-Append ;C\Program Files\autocrc; to the Variable value box.
+Append ;C\Python25\Scripts; to the Variable value box.
+
+To use the gui doubleclick on C:\Python25\Scripts\gautocrc.pyw or create a
+shortcut to it somewhere.

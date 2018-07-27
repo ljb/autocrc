@@ -21,7 +21,7 @@
 The core of autocrc. Performes the CRC-checks independent of what kind
 of interface is used
 """
-import os, sys, re, zlib, codecs, getopt
+import os, sys, re, zlib, fileinput, getopt
 
 def parse(filename):
     "Returns the CRC parsed from the filename or None if no CRC is found"
@@ -43,7 +43,7 @@ def parseline(line, exchange=False):
 
 def getcrcs(dirname, fnames, flags):
     "Returns a dict with filename, crc pairs"
-    oldcwd = os.getcwdu()
+    oldcwd = os.getcwd()
     os.chdir(dirname)
 
     files = [fname for fname in fnames if os.path.isfile(fname)]
@@ -59,19 +59,14 @@ def getcrcs(dirname, fnames, flags):
             no_case_files[fname.lower()] = fname
 
     if sfvfiles and flags.sfv:
-        for sfvfile in sfvfiles:
-            #Almost all sfv-files are encoded with ASCII, but using latin-1 won't
-	    #hurt since it's backward compatible
-            fobj = codecs.open(sfvfile, 'rb', 'latin-1')
-	    for line in fobj:
-                result = parseline(line, flags.exchange)
-                if result:
-                    fname, crc = result
-                    if not flags.case and no_case_files.has_key(fname.lower()):
-                        crcs[os.path.normpath(no_case_files[fname.lower()])] = crc
-                    else:
-                        crcs[os.path.normpath(fname)] = crc
-            fobj.close()
+        for line in fileinput.input(sfvfiles):
+            result = parseline(line, flags.exchange)
+            if result:
+                fname, crc = result
+                if not flags.case and no_case_files.has_key(fname.lower()):
+                    crcs[os.path.normpath(no_case_files[fname.lower()])] = crc
+                else:
+                    crcs[os.path.normpath(fname)] = crc
 
     if flags.crc:
         for fname in files:
@@ -126,7 +121,7 @@ class Flags:
         if args:
             dirnames = [arg for arg in args if os.path.isdir(arg)]
         else:
-            dirnames = [os.getcwdu()]
+            dirnames = [os.getcwd()]
 
         return fnames, dirnames
 
@@ -178,13 +173,13 @@ class Model:
         fileobj.close()
 
 	#Remove everything except the last 32 bits, also remove the leading 0x
-        crc = hex(current&0xFFFFFFFF)[2:].zfill(8).upper()
+        crc = hex(current&0xFFFFFFFF)[2:].upper()
 
 	#On 32-bit systems hex includes a trailing L
         if crc.endswith("L"):
-            return crc[:-1]
+            return crc[:-1].zfill(8)
         else:
-            return crc
+            return crc.zfill(8)
 
     def checkdir(self, dirname, fnames):
         "CRC-check the files in a directory"
@@ -268,7 +263,18 @@ class Model:
         self.start()
 
         if self.fnames:
-            Model.checkdir(self, os.getcwdu(), self.fnames)
+            #Mapping from a directory name to a list with the files that are
+            #to be CRC-checked in that directory
+            dirfilemap = {}
+            for fname in self.fnames:
+                head, tail = os.path.split(fname)
+                head = os.path.abspath(head)
+                if not dirfilemap.has_key(head):
+                    dirfilemap[head] = []
+                dirfilemap[head].append(tail)
+
+            for dirname, fnames in dirfilemap.items():
+                Model.checkdir(self, dirname, fnames)
 
         for dirname in self.dirnames:
             if self.flags.recursive:
