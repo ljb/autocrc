@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2007 Jonas Bengtsson
 
@@ -21,7 +21,7 @@
 The core of autocrc. Performes the CRC-checks independent of what kind
 of interface is used
 """
-import os, sys, re, zlib, getopt, codecs
+import os, sys, re, zlib, getopt
 
 def parse(filename):
     "Returns the CRC parsed from the filename or None if no CRC is found"
@@ -43,7 +43,7 @@ def parseline(line, exchange=False):
 
 def getcrcs(dirname, fnames, flags):
     "Returns a dict with filename, crc pairs"
-    oldcwd = os.getcwdu()
+    oldcwd = os.getcwd()
     os.chdir(dirname)
 
     files = [fname for fname in fnames if os.path.isfile(fname)]
@@ -59,16 +59,17 @@ def getcrcs(dirname, fnames, flags):
             no_case_files[fname.lower()] = fname
 
     if sfvfiles and flags.sfv:
-        #Proper sfv-files are encoded with ASCII, but using latin-1 won't
+        #Proper sfv-files are encoded with ASCII, but using latin1 won't
 	#hurt since it's backward compatible
-	for sfvfile in sfvfiles:
-	    fobj = codecs.open(sfvfile, 'rb', self.encoding)
+        for sfvfile in sfvfiles:
+            fobj = open(sfvfile, 'r', encoding='latin1')
             for line in fobj:
                 result = parseline(line, flags.exchange)
                 if result:
                     fname, crc = result
-                    if not flags.case and no_case_files.has_key(fname.lower()):
-                        crcs[os.path.normpath(no_case_files[fname.lower()])] = crc
+                    if not flags.case and fname.lower() in no_case_files:
+                        normfname = os.normpath(no_case_files[fname.lower()])
+                        crcs[normfname] = crc
                     else:
                         crcs[os.path.normpath(fname)] = crc
         fobj.close()
@@ -85,16 +86,13 @@ def getcrcs(dirname, fnames, flags):
 class Flags:
     "Contains flags that determine how CRC-cheking is done"
     def __init__(self, recursive=False, case=True, exchange=False, 
-            sfv=True, crc=True, follow=False, encoding='latin1',
-	    directory=None):
+            sfv=True, crc=True, follow=False, directory=None):
         self.recursive = recursive
         self.case = case
         self.exchange = exchange
         self.sfv = sfv
         self.crc = crc
-	self.follow = follow
-	self.encoding = encoding
-	self.directory = directory or os.getcwd()
+        self.follow = follow
 
     def parseopt(self, opt, optarg):
         "Allows subclasses to define new options"
@@ -105,10 +103,9 @@ class Flags:
         Parses arguments and switches from sys.argv and sets variables.
         Returns a tuple of a filename and a directory lists
         """
-   	
-        longopts.extend(
-		['recursive', 'ignore-case', 'exchange', 'no-crc', 'no-sfv', 'out-file='])
-	shortopts += 'rixcso:'
+        longopts.extend(['recursive', 'ignore-case', 
+                         'exchange', 'no-crc', 'no-sfv', 'follow'])
+        shortopts += 'rixcsLC:'
         opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
 
         for opt, optarg in opts:
@@ -122,21 +119,16 @@ class Flags:
                 self.crc = False
             elif opt in ['-s', '--no-sfv']:
                 self.sfv = False
-#            elif opt in ['-o', '--out-file']:
-#               self.out = optarg
-	    elif opt in ['-L', '--follow']:
-		self.follow = True
-	    elif opt in ['-C','--directory']:
-		os.chdir(optarg)
+            elif opt in ['-L', '--follow']:
+                self.follow = True
+            elif opt in ['-C','--directory']:
+                os.chdir(optarg)
             else:
                 self.parseopt(opt, optarg)
 
         fnames = [arg for arg in args if os.path.isfile(arg)]
-
-        if args:
-            dirnames = [arg for arg in args if os.path.isdir(arg)]
-        else:
-            dirnames = [os.getcwdu()]
+	dirnames = [arg for arg in args if os.path.isdir(arg)] if args 
+              else [os.getcwd()]
 
         return fnames, dirnames
 
@@ -165,15 +157,12 @@ class Status:
 
 class Model:
     "An abstract model. Subclasses decides how the output is presented"
-    def __init__(self, flags=None, fnames=None, dirnames=None,
-		    blocksize=8192, encoding='latin1'):
+    def __init__(self, flags=None, fnames=None, dirnames=None, blocksize=8192):
         self.fnames = fnames or []
         self.dirnames = dirnames or []
         self.flags = flags or Flags()
         self.blocksize = blocksize
         self.totalstat = Status()
-	self.encoding = encoding
-	self.outobj = None
 
     def crc32_of_file(self, filepath):
         "Returns the CRC of the file filepath"
@@ -190,24 +179,11 @@ class Model:
             current = zlib.crc32(buf, current)
         fileobj.close()
 
-	#Remove everything except the last 32 bits, also remove the leading 0x
-        crc = hex(current&0xFFFFFFFF)[2:].upper()
-
-	#On 32-bit systems hex includes a trailing L
-        if crc.endswith("L"):
-            return crc[:-1].zfill(8)
-        else:
-            return crc.zfill(8)
+	#Remove everything except the last 32 bits, including the leading 0x
+        return hex(current&0xFFFFFFFF)[2:].upper().zfill(8)
 
     def checkdir(self, dirname, fnames):
         "CRC-check the files in a directory"
-        dirlinks = [fname for fname in fnames if os.path.islink(fname) and \
-                                                 os.path.isdir(fname)]
-
-        if dirlinks and self.flags.recursive and self.follow:
-            for dirlink in dirlinks:
-                os.path.walk(dirlink, Model.checkdir, self)
-
         crcs = getcrcs(dirname, fnames, self.flags)
 
         if crcs:
@@ -218,7 +194,7 @@ class Model:
                 try:
                     realcrc = self.crc32_of_file(os.path.join(dirname, fname))
 
-                except IOError, eobj:
+                except IOError as eobj:
                     if eobj.errno == 2:
                         dirstat.nrmissing += 1
                         self.filemissing(fname)
@@ -293,12 +269,14 @@ class Model:
                 dirfilemap[head].append(tail)
 
             for dirname, fnames in dirfilemap.items():
-                Model.checkdir(self, dirname, fnames)
+                self.checkdir(dirname, fnames)
 
         for dirname in self.dirnames:
             if self.flags.recursive:
-                os.path.walk(dirname, Model.checkdir, self)
+                for root, dirs, files in os.walk(
+		        dirname, followlinks=self.flags.follow):
+                    self.checkdir(root, files)
             else:
-                Model.checkdir(self, dirname, os.listdir(dirname))
+                self.checkdir(dirname, os.listdir(dirname))
 
         self.end()

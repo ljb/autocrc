@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2007 Jonas Bengtsson
 
@@ -292,8 +292,6 @@ class DirectoryPanel(wx.Panel, wx.FileDropTarget):
 
         if dialog.ShowModal() == wx.ID_OK:
             dirname = dialog.GetPath()
-            if type(dirname) is unicode:
-                dirname = dirname.encode('latin1','replace')
             self.dirnames.add(dirname)
         self.label.update()
 
@@ -302,11 +300,7 @@ class DirectoryPanel(wx.Panel, wx.FileDropTarget):
 
         if dialog.ShowModal() == wx.ID_OK:
             fnames = dialog.GetFilenames()
-            for fname in fnames:
-                if not type(fname) is unicode:
-                    break
-                fname = fname.encode('latin1','replace')
-            self.fnames.update(fnames)
+            self.fnames.update(dialog.GetFileNames())
         self.label.update()
 
 class Gui(wx.Frame):
@@ -389,10 +383,10 @@ class Gui(wx.Frame):
 
         try:
             threading.Thread(target=self.model.run).start()
-        except threading.ThreadError, eobj:
+        except threading.ThreadError as eobj:
             self.running = False
             self.status.SetStatusText(eobj.message)
-        except OSError, eobj:
+        except OSError as eobj:
             self.running = False
             self.status.SetStatusText(eobj.filename + ":", eobj.message)
 

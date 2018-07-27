@@ -1,6 +1,6 @@
 If you don't want to gui to be installed, remove scripts/gautocrc and 
 src/gui.py. If you don't want the console interface to be installed remove 
-scripts/autocrc and src/text.pyUnix/Linux.
+scripts/autocrc and src/text.py.
 
 Unix/Linux:
 In a terminal run:
