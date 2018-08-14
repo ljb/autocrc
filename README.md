@@ -10,9 +10,9 @@ summary of the result.
 Python 3
 
 ### Installing
-Download a release and install it with pip:
+Install it with pip:
 ```
-pip install autocrc-1.0.tar.gz
+pip install autocrc
 ```
 
 Or build and install manually:
