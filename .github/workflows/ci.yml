@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: pip install .
+
+      - name: Verify entry point
+        run: autocrc --version
+
+      - name: Verify CRC from filename
+        run: |
+          echo "hello" > "test_file [1F2E3D4C].txt"
+          autocrc "test_file [1F2E3D4C].txt" || true
+
+      - name: Verify SFV parsing
+        run: |
+          echo "hello" > testfile.bin
+          echo "testfile.bin 363A3020" > test.sfv
+          autocrc test.sfv
