@@ -21,6 +21,7 @@
 The core of autocrc. Performs the CRC-checks independent of what kind
 of interface is used
 """
+import errno
 import io
 import mmap
 import os
@@ -148,7 +149,7 @@ class Model:
                 try:
                     real_crc = self.crc32_of_file(os.path.join(dir_name, file_name))
                 except OSError as e:
-                    if e.errno == 2:
+                    if e.errno == errno.ENOENT:
                         dir_stat.nr_missing += 1
                         self.file_missing(file_name)
                     else:
