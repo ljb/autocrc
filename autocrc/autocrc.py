@@ -119,20 +119,22 @@ class Model:
     def crc32_of_file(self, file_path: str) -> str:
         """Returns the CRC of the file filepath"""
 
-        with open(file_path, 'r+') as file_:
-            with mmap.mmap(file_.fileno(), 0, access=mmap.ACCESS_READ) as map_:
-                self.file_start(file_)
+        with (
+            open(file_path, 'r+') as file_,
+            mmap.mmap(file_.fileno(), 0, access=mmap.ACCESS_READ) as map_,
+        ):
+            self.file_start(file_)
 
-                current = 0
-                while True:
-                    buf = map_.read(self.block_size)
-                    if not buf:
-                        break
-                    current = zlib.crc32(buf, current)
-                    self.block_read()
+            current = 0
+            while True:
+                buf = map_.read(self.block_size)
+                if not buf:
+                    break
+                current = zlib.crc32(buf, current)
+                self.block_read()
 
-                # Remove everything except the last 32 bits, including the leading 0x
-                return hex(current & 0xFFFFFFFF)[2:].upper().zfill(8)
+            # Remove everything except the last 32 bits, including the leading 0x
+            return hex(current & 0xFFFFFFFF)[2:].upper().zfill(8)
 
     def check_dir(self, dir_name: str, file_names: list[str]) -> None:
         """CRC-check the files in a directory"""
