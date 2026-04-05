@@ -27,6 +27,7 @@ import os
 import re
 import zlib
 from argparse import Namespace
+from collections import defaultdict
 from dataclasses import dataclass
 
 
@@ -147,7 +148,7 @@ class Model:
             for file_name, crc in sorted(crcs.items()):
                 try:
                     real_crc = self.crc32_of_file(os.path.join(dir_name, file_name))
-                except IOError as e:
+                except OSError as e:
                     if e.errno == 2:
                         dir_stat.nr_missing += 1
                         self.file_missing(file_name)
@@ -216,13 +217,10 @@ class Model:
 
         # Mapping from a directory name to a list with the files that are
         # to be CRC-checked in that directory
-        files_by_dir = {}
+        files_by_dir: defaultdict[str, list[str]] = defaultdict(list)
         for file_name in self.file_names:
             head, tail = os.path.split(file_name)
-            head = os.path.abspath(head)
-            if head not in files_by_dir:
-                files_by_dir[head] = []
-            files_by_dir[head].append(tail)
+            files_by_dir[os.path.abspath(head)].append(tail)
 
         for dir_name, file_names in files_by_dir.items():
             self.check_dir(dir_name, file_names)
