@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autocrc"
+version = "1.1"
+description = "Automated CRC-checking"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.10"
+authors = [
+    { name = "Jonas Bengtsson", email = "jonas@bengtsson.cc" },
+]
+
+[project.urls]
+Homepage = "https://github.com/ljb/autocrc"
+
+[project.scripts]
+autocrc = "autocrc.text:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["autocrc*"]
