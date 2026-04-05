@@ -20,12 +20,12 @@
 """A commandline interface to autocrc"""
 import os
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 
 from . import autocrc
 
 
-def main():
+def main() -> None:
     try:
         args, file_names, dir_names = parse_args()
         model = TextModel(args, file_names, dir_names)
@@ -38,7 +38,7 @@ def main():
         pass
 
 
-def parse_args():
+def parse_args() -> tuple[Namespace, list[str], list[str]]:
     parser = ArgumentParser()
     parser.add_argument("--version", action='version', version='%(prog)s v1.1')
     parser.add_argument("-r", "--recursive", action="store_true",
@@ -69,20 +69,21 @@ def parse_args():
 
 
 class TextModel(autocrc.Model):
-    def __init__(self, args, file_names, dir_names):
+    def __init__(self, args: Namespace, file_names: list[str],
+                 dir_names: list[str]):
         super().__init__(args, file_names, dir_names)
-        self.dir_stat = None
+        self.dir_stat: autocrc.StatusInformation | None = None
 
-    def file_missing(self, file_name):
+    def file_missing(self, file_name: str) -> None:
         """Print that a file is missing"""
         self.file_print(file_name, "No such file")
 
-    def file_ok(self, file_name):
+    def file_ok(self, file_name: str) -> None:
         """Print that a CRC-check was successful if quiet is false"""
         if not self.args.quiet:
             self.file_print(file_name, "OK")
 
-    def file_different(self, file_name, crc, real_crc):
+    def file_different(self, file_name: str, crc: str, real_crc: str) -> None:
         """
         Print that a CRC-check failed. 
         If verbose is set then the CRC calculated and the CRC that it was 
@@ -93,11 +94,12 @@ class TextModel(autocrc.Model):
         else:
             self.file_print(file_name, "CRC mismatch")
 
-    def file_read_error(self, file_name):
+    def file_read_error(self, file_name: str) -> None:
         """Print that a read error occurred"""
         self.file_print(file_name, "Read error")
 
-    def directory_start(self, dir_name, dir_stat):
+    def directory_start(self, dir_name: str,
+                        dir_stat: autocrc.StatusInformation) -> None:
         """Print that the CRC-checking of a directory has started"""
         self.dir_stat = dir_stat
         if dir_name == os.curdir:
@@ -106,7 +108,7 @@ class TextModel(autocrc.Model):
             dir_name = os.path.normpath(dir_name)
         print("Current directory:", dir_name)
 
-    def directory_end(self):
+    def directory_end(self) -> None:
         """Print a summary of a directory."""
         print("-" * 80)
 
@@ -120,7 +122,7 @@ class TextModel(autocrc.Model):
             f"Different {s.nr_different}, Missing {s.nr_missing}, "
             f"Read errors {s.nr_read_errors}\n")
 
-    def end(self):
+    def end(self) -> None:
         """Print a total summary if more than one directory was scanned"""
         if self.total_stat.nr_files == 0:
             print("No CRC-sums found")
@@ -142,7 +144,7 @@ class TextModel(autocrc.Model):
                  (self.total_stat.nr_read_errors > 0) * 4)
 
     @staticmethod
-    def file_print(file_name, status):
+    def file_print(file_name: str, status: str) -> None:
         pad_len = max(0, 77 - len(file_name))
         norm_file_name = os.path.normpath(file_name)
         print(f"{norm_file_name} {status:>{pad_len}}")

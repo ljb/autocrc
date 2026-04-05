@@ -21,10 +21,12 @@
 The core of autocrc. Performs the CRC-checks independent of what kind
 of interface is used
 """
+import io
 import mmap
 import os
 import re
 import zlib
+from argparse import Namespace
 from dataclasses import dataclass
 
 
@@ -54,7 +56,8 @@ class StatusInformation:
 class Model:
     """An abstract model. Subclasses decides how the output is presented"""
 
-    def __init__(self, flags, file_names=None, dir_names=None, block_size=8192):
+    def __init__(self, flags: Namespace, file_names: list[str] | None = None,
+                 dir_names: list[str] | None = None, block_size: int = 8192):
         self.args = flags
         self.file_names = file_names or []
         self.dir_names = dir_names or []
@@ -62,7 +65,7 @@ class Model:
         self.total_stat = StatusInformation()
 
     @staticmethod
-    def parse(file_name):
+    def parse(file_name: str) -> str | None:
         """Returns the CRC parsed from the file_name or None if no CRC is found"""
         crc = \
             re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', file_name) or \
@@ -71,7 +74,7 @@ class Model:
         if crc:
             return crc.group(1).upper()
 
-    def parse_line(self, line):
+    def parse_line(self, line: str) -> tuple[str, str] | None:
         """Parses a line from a sfv-file, returns a file name crc tuple"""
         match = re.match(r'([^;]+)\s([a-fA-F0-9]{8})\s*$', line)
         if match:
@@ -81,7 +84,7 @@ class Model:
             else:
                 return match.group(1), match.group(2).upper()
 
-    def get_crcs(self, dir_name, file_names):
+    def get_crcs(self, dir_name: str, file_names: list[str]) -> dict[str, str]:
         """Returns a dict with file_name, crc pairs"""
         old_cwd = os.getcwd()
         os.chdir(dir_name)
@@ -115,7 +118,7 @@ class Model:
         os.chdir(old_cwd)
         return crcs
 
-    def crc32_of_file(self, file_path):
+    def crc32_of_file(self, file_path: str) -> str:
         """Returns the CRC of the file filepath"""
 
         with open(file_path, 'r+') as file_:
@@ -133,7 +136,7 @@ class Model:
                 # Remove everything except the last 32 bits, including the leading 0x
                 return hex(current & 0xFFFFFFFF)[2:].upper().zfill(8)
 
-    def check_dir(self, dir_name, file_names):
+    def check_dir(self, dir_name: str, file_names: list[str]) -> None:
         """CRC-check the files in a directory"""
         crcs = self.get_crcs(dir_name, file_names)
 
@@ -163,46 +166,47 @@ class Model:
             self.directory_end()
 
     # Hook methods, implemented by subclasses
-    def file_ok(self, file_name):
+    def file_ok(self, file_name: str) -> None:
         """Called when a file was successfully CRC-checked"""
         pass
 
-    def file_missing(self, file_name):
+    def file_missing(self, file_name: str) -> None:
         """Called when a file is missing"""
         pass
 
-    def file_read_error(self, file_name):
+    def file_read_error(self, file_name: str) -> None:
         """Called when a read error occurs on a file"""
         pass
 
-    def file_different(self, file_name, crc, real_crc):
+    def file_different(self, file_name: str, crc: str, real_crc: str) -> None:
         """Called when a CRC-mismatch occurs"""
         pass
 
-    def directory_start(self, dir_name, dir_stat):
+    def directory_start(self, dir_name: str, dir_stat: StatusInformation) -> None:
         """Called when the CRC-checks on a directory is started"""
         pass
 
-    def directory_end(self):
+    def directory_end(self) -> None:
         """Called when the CRC-checks on a directory is complete"""
         pass
 
-    def start(self):
+    def start(self) -> None:
         """Called when the CRC-checking starts"""
         pass
 
-    def end(self):
+    def end(self) -> None:
         """Called when the CRC-checking is complete"""
         pass
 
-    def file_start(self, file_):
+    def file_start(self, file_: io.TextIOWrapper) -> None:
         """Called when the CRC-checking of a file is started"""
+        pass
 
-    def block_read(self):
+    def block_read(self) -> None:
         """Called regularly in the loop where autocrc spends most of it's time."""
         pass
 
-    def run(self):
+    def run(self) -> None:
         """Starts the CRC-checking"""
 
         self.start()
