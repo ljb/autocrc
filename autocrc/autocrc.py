@@ -68,17 +68,16 @@ class Model:
     @staticmethod
     def parse(file_name: str) -> str | None:
         """Returns the CRC parsed from the file_name or None if no CRC is found"""
-        crc = \
-            re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', file_name) or \
-            re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', file_name) or \
+        if crc := (
+            re.match(r'.*?\[([a-fA-F0-9]{8})\].*?$', file_name) or
+            re.match(r'.*?\(([a-fA-F0-9]{8})\).*?$', file_name) or
             re.match(r'.*?_([a-fA-F0-9]{8})_.*?$', file_name)
-        if crc:
+        ):
             return crc.group(1).upper()
 
     def parse_line(self, line: str) -> tuple[str, str] | None:
         """Parses a line from a sfv-file, returns a file name crc tuple"""
-        match = re.match(r'([^;]+)\s([a-fA-F0-9]{8})\s*$', line)
-        if match:
+        if match := re.match(r'([^;]+)\s([a-fA-F0-9]{8})\s*$', line):
             # Make Windows directories into Unix directories
             if self.args.exchange:
                 return match.group(1).replace('\\', '/'), match.group(2).upper()
@@ -102,8 +101,7 @@ class Model:
             for sfv_file in sfv_files:
                 with open(sfv_file, 'r', errors='replace') as file_:
                     for line in file_:
-                        result = self.parse_line(line)
-                        if result:
+                        if result := self.parse_line(line):
                             file_name, crc = result
                             if not self.args.case and file_name.lower() in no_case_files:
                                 crcs[no_case_files[file_name.lower()]] = crc
@@ -112,8 +110,7 @@ class Model:
 
         if self.args.crc:
             for file in files:
-                crc = self.parse(file)
-                if crc:
+                if crc := self.parse(file):
                     crcs[file] = crc
 
         os.chdir(old_cwd)
