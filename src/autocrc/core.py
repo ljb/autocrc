@@ -34,10 +34,10 @@ class Options:
 
     recursive: bool = False
     case: bool = True
-    exchange: bool = False
+    windows_paths: bool = False
     crc: bool = True
     sfv: bool = True
-    follow: bool = False
+    follow_symlinks: bool = False
 
 
 @dataclass(frozen=True)
@@ -96,13 +96,13 @@ def crc_from_filename(file_name: str) -> str | None:
     return None
 
 
-def parse_sfv_line(line: str, exchange: bool = False) -> tuple[str, str] | None:
+def parse_sfv_line(line: str, windows_paths: bool = False) -> tuple[str, str] | None:
     """Parses a line from an sfv-file, returns a file name and CRC tuple."""
     if not (match := SFV_LINE_PATTERN.match(line)):
         return None
 
     file_name = match.group(1)
-    if exchange:
+    if windows_paths:
         # Make Windows directories into Unix directories
         file_name = file_name.replace("\\", "/")
     return file_name, match.group(2).upper()
@@ -118,7 +118,7 @@ def crcs_in_dir(dir_path: str, file_names: list[str], options: Options) -> dict[
         for sfv_file in sfv_files:
             with open(os.path.join(dir_path, sfv_file), "r", errors="replace") as file_:
                 for line in file_:
-                    if result := parse_sfv_line(line, options.exchange):
+                    if result := parse_sfv_line(line, options.windows_paths):
                         file_name, crc = result
                         if not options.case:
                             file_name = _match_ignoring_case(dir_path, file_name)
@@ -194,7 +194,7 @@ def walk_targets(
 
     for dir_name in dir_names:
         if options.recursive:
-            for root, dirs, files in os.walk(dir_name, followlinks=options.follow, onerror=on_error):
+            for root, dirs, files in os.walk(dir_name, followlinks=options.follow_symlinks, onerror=on_error):
                 # Sorting in place makes os.walk descend in sorted order too
                 dirs.sort()
                 yield os.path.abspath(root), files

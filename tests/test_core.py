@@ -45,10 +45,10 @@ class ParseSfvLineTest(TestCase):
     def test_keeps_backslashes_by_default(self):
         self.assertEqual(("dir\\video.mkv", "1F2E3D4C"), core.parse_sfv_line("dir\\video.mkv 1F2E3D4C\n"))
 
-    def test_exchange_rewrites_backslashes(self):
+    def test_windows_paths_rewrites_backslashes(self):
         self.assertEqual(
             ("dir/video.mkv", "1F2E3D4C"),
-            core.parse_sfv_line("dir\\video.mkv 1F2E3D4C\n", exchange=True),
+            core.parse_sfv_line("dir\\video.mkv 1F2E3D4C\n", windows_paths=True),
         )
 
 

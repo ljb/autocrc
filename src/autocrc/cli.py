@@ -32,10 +32,10 @@ def main() -> None:
         options = Options(
             recursive=args.recursive,
             case=args.case,
-            exchange=args.exchange,
+            windows_paths=args.windows_paths,
             crc=args.crc,
             sfv=args.sfv,
-            follow=args.follow,
+            follow_symlinks=args.follow_symlinks,
         )
 
         unreadable_dirs: list[OSError] = []
@@ -87,7 +87,7 @@ def _parse_args() -> Namespace:
     )
     parser.add_argument(
         "-x",
-        "--exchange",
+        "--windows-paths",
         action="store_true",
         help="interpret \\ as / for file names parsed from sfv-files",
     )
@@ -108,7 +108,7 @@ def _parse_args() -> Namespace:
     parser.add_argument("-C", "--directory", metavar="DIR", help="use DIR as the working directory")
     parser.add_argument(
         "-L",
-        "--follow",
+        "--follow-symlinks",
         action="store_true",
         help="follow symbolic directory links in recursive mode",
     )
