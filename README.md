@@ -41,6 +41,7 @@ pip install .
 | 2 | At least one missing file |
 | 4 | At least one read error |
 | 8 | An unhandled I/O error occurred |
+| 130 | Interrupted with Ctrl-C |
 
 ### Development
 ```

@@ -41,7 +41,8 @@ The exact output format is a contract with users (it is modelled on pure-sfv) an
 - `FILE_NAME_WIDTH = 77` — status text is right-aligned in the space left after the file name.
 - `SEPARATOR_WIDTH = 80` — the `-` rule under each directory. It does not match `FILE_NAME_WIDTH`;
   that mismatch is inherited from the original implementation.
-- The exit status: `different + missing * 2 + read_errors * 4`, or `8` on an unhandled `OSError`.
+- The exit status: `different + missing * 2 + read_errors * 4`, `8` on an unhandled `OSError`, and
+  `130` on Ctrl-C.
 - `Current directory:` headers are always absolute, and `walk_targets()` yields directories in
   sorted order. Both are deliberate: output should not depend on how a path was typed or on the
   order the filesystem hands entries back.

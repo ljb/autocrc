@@ -209,6 +209,14 @@ class MainTest(TempDirTestCase):
         self.assertEqual(0, status)
         self.assertIn("Tested 1 files, Successful 1", output)
 
+    def test_keyboard_interrupt_exits_130(self):
+        self.write_file(f"ok [{PAYLOAD_CRC}].bin")
+
+        with patch("autocrc.cli.check_dir", side_effect=KeyboardInterrupt):
+            status, _ = self.run_main([])
+
+        self.assertEqual(130, status)
+
     def test_exit_status(self):
         test_data = [
             ("different", 1),

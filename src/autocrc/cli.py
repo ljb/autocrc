@@ -60,7 +60,8 @@ def main() -> None:
         print(f"autocrc: {e.filename}: {e.strerror}", file=sys.stderr)
         sys.exit(8)
     except KeyboardInterrupt:
-        pass
+        # 128 + SIGINT, so that an interrupted run is not mistaken for a successful one
+        sys.exit(130)
 
 
 def _parse_args() -> Namespace:
