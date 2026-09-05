@@ -42,7 +42,8 @@ The exact output format is a contract with users (it is modelled on pure-sfv) an
 - `SEPARATOR_WIDTH = 80` — the `-` rule under each directory. It does not match `FILE_NAME_WIDTH`;
   that mismatch is inherited from the original implementation.
 - The exit status: `different + missing * 2 + read_errors * 4`, `8` on an unhandled `OSError`, and
-  `130` on Ctrl-C.
+  `130` on Ctrl-C. A directory that could not be read during a recursive walk also sets the `4` bit,
+  via `_exit_status(..., had_unreadable_dirs=True)` -- never let that path return 0.
 - `Current directory:` headers are always absolute, and `walk_targets()` yields directories in
   sorted order. Both are deliberate: output should not depend on how a path was typed or on the
   order the filesystem hands entries back.
@@ -50,3 +51,5 @@ The exact output format is a contract with users (it is modelled on pure-sfv) an
   quiet run prints nothing. The totals are still accumulated for the exit status.
 - `-C/--directory` must chdir *before* `_split_paths()` runs, or relative positional arguments are
   resolved against the wrong directory and silently dropped.
+- `walk_targets()` takes an `on_error` callback that is handed to `os.walk(onerror=...)`. Without it
+  os.walk swallows unreadable directories, which made a partial scan look like a clean one.

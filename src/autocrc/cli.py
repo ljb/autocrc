@@ -38,8 +38,15 @@ def main() -> None:
             follow=args.follow,
         )
 
+        unreadable_dirs: list[OSError] = []
+
+        def on_walk_error(error: OSError) -> None:
+            """Reports a directory that could not be read, so the walk can carry on past it."""
+            unreadable_dirs.append(error)
+            print(f"autocrc: {error.filename}: {error.strerror}", file=sys.stderr)
+
         total = Summary()
-        for dir_path, dir_files in walk_targets(file_names, dir_names, options):
+        for dir_path, dir_files in walk_targets(file_names, dir_names, options, on_error=on_walk_error):
             results = check_dir(dir_path, dir_files, options)
             if not results:
                 continue
@@ -57,7 +64,7 @@ def main() -> None:
             _print_dir_summary(summary)
 
         _print_total_summary(total)
-        sys.exit(_exit_status(total))
+        sys.exit(_exit_status(total, had_unreadable_dirs=bool(unreadable_dirs)))
 
     except OSError as e:
         print(f"autocrc: {e.filename}: {e.strerror}", file=sys.stderr)
@@ -172,8 +179,12 @@ def _print_file(file_name: str, status: str) -> None:
     print(f"{os.path.normpath(file_name)} {status:>{pad_len}}")
 
 
-def _exit_status(summary: Summary) -> int:
-    return (summary.nr_different > 0) + (summary.nr_missing > 0) * 2 + (summary.nr_read_errors > 0) * 4
+def _exit_status(summary: Summary, had_unreadable_dirs: bool = False) -> int:
+    return (
+        (summary.nr_different > 0)
+        + (summary.nr_missing > 0) * 2
+        + (summary.nr_read_errors > 0 or had_unreadable_dirs) * 4
+    )
 
 
 def _package_version() -> str:

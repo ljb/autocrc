@@ -4,7 +4,7 @@ import mmap
 import os
 import re
 import zlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -166,13 +166,23 @@ def check_dir(dir_path: str, file_names: list[str], options: Options) -> list[Cr
     return results
 
 
-def walk_targets(file_names: list[str], dir_names: list[str], options: Options) -> Iterator[tuple[str, list[str]]]:
+def walk_targets(
+    file_names: list[str],
+    dir_names: list[str],
+    options: Options,
+    on_error: Callable[[OSError], None] | None = None,
+) -> Iterator[tuple[str, list[str]]]:
     """
     Yields (directory, file names) pairs for everything that should be CRC-checked.
 
     Directories are always absolute so that callers do not have to care whether the
     user named a path relatively, and are visited in sorted order so that the output
     of a run does not depend on the order the filesystem happens to hand them back.
+
+    A directory that cannot be read during a recursive walk is passed to on_error and
+    then skipped; os.walk would otherwise swallow it and let the run look complete.
+    Directories named on the command line are not affected -- failing to read one of
+    those raises, because the user asked for it by name.
     """
     # Individually named files are grouped by the directory they live in
     files_by_dir: dict[str, list[str]] = {}
@@ -184,7 +194,7 @@ def walk_targets(file_names: list[str], dir_names: list[str], options: Options) 
 
     for dir_name in dir_names:
         if options.recursive:
-            for root, dirs, files in os.walk(dir_name, followlinks=options.follow):
+            for root, dirs, files in os.walk(dir_name, followlinks=options.follow, onerror=on_error):
                 # Sorting in place makes os.walk descend in sorted order too
                 dirs.sort()
                 yield os.path.abspath(root), files

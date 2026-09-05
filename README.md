@@ -39,8 +39,8 @@ pip install .
 | 0 | Everything OK |
 | 1 | At least one CRC mismatch |
 | 2 | At least one missing file |
-| 4 | At least one read error |
-| 8 | An unhandled I/O error occurred |
+| 4 | At least one read error, or a directory that could not be read during a recursive walk |
+| 8 | An unhandled I/O error occurred, such as a directory named on the command line that could not be read |
 | 130 | Interrupted with Ctrl-C |
 
 ### Development
@@ -64,3 +64,7 @@ or on the order the filesystem returns them.
 
 `-q` reports only the directories in which something went wrong. A run in which
 everything checks out prints nothing at all.
+
+A directory that cannot be read during a recursive walk is reported on stderr and
+then skipped, so the rest of the tree is still checked -- but the exit status says
+that something was missed rather than claiming success.
