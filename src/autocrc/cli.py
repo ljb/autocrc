@@ -41,13 +41,17 @@ def main() -> None:
             if not results:
                 continue
 
+            summary = Summary.from_results(results)
+            total += summary
+
+            # A quiet run only reports the directories that had something go wrong
+            if args.quiet and summary.everything_ok:
+                continue
+
             print("Current directory:", dir_path)
             for result in results:
                 _print_result(result, quiet=args.quiet, verbose=args.verbose)
-
-            summary = Summary.from_results(results)
             _print_dir_summary(summary)
-            total += summary
 
         _print_total_summary(total)
         sys.exit(_exit_status(total))
@@ -101,7 +105,7 @@ def _parse_args() -> Namespace:
         "-q",
         "--quiet",
         action="store_true",
-        help="only print error messages and summaries",
+        help="only report directories in which something went wrong",
     )
     parser.add_argument(
         "-v",

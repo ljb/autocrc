@@ -120,12 +120,37 @@ class MainTest(TempDirTestCase):
         self.assertEqual("-" * 80, lines[2])
         self.assertEqual("Everything OK", lines[3])
 
-    def test_quiet_hides_successful_files(self):
+    def test_quiet_says_nothing_when_everything_is_ok(self):
         self.write_file(f"ok [{PAYLOAD_CRC}].bin")
-        _, output = self.run_main(["-q"])
+        status, output = self.run_main(["-q"])
 
-        self.assertNotIn("OK ", output)
-        self.assertIn("Everything OK", output)
+        self.assertEqual(0, status)
+        self.assertEqual("", output)
+
+    def test_quiet_reports_directories_with_problems(self):
+        self.write_file(f"ok [{PAYLOAD_CRC}].bin")
+        self.write_file(f"bad [{PAYLOAD_CRC}].bin", OTHER_PAYLOAD)
+
+        status, output = self.run_main(["-q"])
+
+        self.assertEqual(1, status)
+        self.assertIn("CRC mismatch", output)
+        # The successful file in the reported directory is still hidden
+        self.assertNotIn(f"ok [{PAYLOAD_CRC}].bin", output)
+        self.assertIn("Tested 2 files, Successful 1, Different 1", output)
+
+    def test_quiet_skips_clean_directories_but_keeps_the_total(self):
+        for name in ["a", "b", "c"]:
+            self.write_file(f"{name}/ok [{PAYLOAD_CRC}].bin")
+        self.write_file(f"bad/broken [{PAYLOAD_CRC}].bin", OTHER_PAYLOAD)
+
+        status, output = self.run_main(["-r", "-q", "."])
+
+        self.assertEqual(1, status)
+        self.assertEqual(1, output.count("Current directory:"))
+        self.assertIn(f"Current directory: {os.path.realpath(self.path('bad'))}", output)
+        self.assertIn("  Tested\t 4 files", output)
+        self.assertIn("  Successful\t 3 files", output)
 
     def test_verbose_shows_both_crcs(self):
         self.write_file(f"bad [{PAYLOAD_CRC}].bin", OTHER_PAYLOAD)
