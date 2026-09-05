@@ -21,10 +21,13 @@ STATUS_TEXT = {
 def main() -> None:
     try:
         args = _parse_args()
-        file_names, dir_names = _split_paths(args.files)
 
+        # Must happen before the paths are resolved, so that relative arguments are
+        # interpreted against DIR rather than against the directory autocrc started in
         if args.directory:
             os.chdir(args.directory)
+
+        file_names, dir_names = _split_paths(args.files)
 
         options = Options(
             recursive=args.recursive,

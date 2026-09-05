@@ -48,3 +48,5 @@ The exact output format is a contract with users (it is modelled on pure-sfv) an
   order the filesystem hands entries back.
 - `-q` skips the whole per-directory block when that directory is clean, so a fully successful
   quiet run prints nothing. The totals are still accumulated for the exit status.
+- `-C/--directory` must chdir *before* `_split_paths()` runs, or relative positional arguments are
+  resolved against the wrong directory and silently dropped.

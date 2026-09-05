@@ -209,6 +209,16 @@ class MainTest(TempDirTestCase):
         self.assertEqual(0, status)
         self.assertIn("Tested 1 files, Successful 1", output)
 
+    def test_directory_option_applies_to_relative_arguments(self):
+        """Regression test: paths used to be resolved before -C had changed directory."""
+        self.write_file(f"target/sub/deep [{PAYLOAD_CRC}].bin")
+        os.chdir("/")
+
+        status, output = self.run_main(["-C", self.path("target"), "sub"])
+
+        self.assertEqual(0, status)
+        self.assertIn("Tested 1 files, Successful 1", output)
+
     def test_keyboard_interrupt_exits_130(self):
         self.write_file(f"ok [{PAYLOAD_CRC}].bin")
 
