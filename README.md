@@ -61,6 +61,11 @@ ruff check
 ruff format --check
 ```
 
+### Changelog
+
+See [CHANGELOG.md](CHANGELOG.md). Note that 2.0.0 contains breaking changes if you
+are coming from 1.0.
+
 ### Notes
 
 The way the output is formatted is heavily influenced by pure-sfv.

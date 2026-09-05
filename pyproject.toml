@@ -16,6 +16,7 @@ authors = [
 
 [project.urls]
 Homepage = "https://github.com/ljb/autocrc"
+Changelog = "https://github.com/ljb/autocrc/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
