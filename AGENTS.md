@@ -42,3 +42,8 @@ The exact output format is a contract with users (it is modelled on pure-sfv) an
 - `SEPARATOR_WIDTH = 80` — the `-` rule under each directory. It does not match `FILE_NAME_WIDTH`;
   that mismatch is inherited from the original implementation.
 - The exit status: `different + missing * 2 + read_errors * 4`, or `8` on an unhandled `OSError`.
+- `Current directory:` headers are always absolute, and `walk_targets()` yields directories in
+  sorted order. Both are deliberate: output should not depend on how a path was typed or on the
+  order the filesystem hands entries back.
+- `-q` skips the whole per-directory block when that directory is clean, so a fully successful
+  quiet run prints nothing. The totals are still accumulated for the exit status.

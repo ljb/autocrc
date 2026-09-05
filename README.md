@@ -53,14 +53,13 @@ ruff check
 ruff format --check
 ```
 
-### TODO
-* Improve the way --quiet works
-* More consequent treatment of paths in the console interface, at the moment
-  it's not well defined when it prints absolute paths and when it prints
-  relative paths
-* Improve the part that parses CRC-sums from filenames, support for
-  CRCs missing the leading zeroes.
-
 ### Notes
 
 The way the output is formatted is heavily influenced by pure-sfv.
+
+`Current directory:` headers are always absolute, and directories are visited in
+sorted order, so the output of a run does not depend on how the paths were typed
+or on the order the filesystem returns them.
+
+`-q` reports only the directories in which something went wrong. A run in which
+everything checks out prints nothing at all.
