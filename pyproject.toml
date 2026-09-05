@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autocrc"
-version = "1.2.0"
+version = "2.0.0"
 description = "Automated CRC-checking"
 readme = "README.md"
 license = "GPL-3.0-or-later"
