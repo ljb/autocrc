@@ -51,5 +51,7 @@ The exact output format is a contract with users (it is modelled on pure-sfv) an
   quiet run prints nothing. The totals are still accumulated for the exit status.
 - `-C/--directory` must chdir *before* `_split_paths()` runs, or relative positional arguments are
   resolved against the wrong directory and silently dropped.
+- `_split_paths()` raises on a path that is neither a file nor a directory. Do not soften that back
+  into a filter -- a silently dropped path made a mistyped argument look like a clean run.
 - `walk_targets()` takes an `on_error` callback that is handed to `os.walk(onerror=...)`. Without it
   os.walk swallows unreadable directories, which made a partial scan look like a clean one.

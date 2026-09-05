@@ -61,8 +61,21 @@ class SplitPathsTest(TempDirTestCase):
         self.assertEqual([self.path("payload.bin")], file_names)
         self.assertEqual([self.path("sub")], dir_names)
 
-    def test_ignores_paths_that_do_not_exist(self):
-        self.assertEqual(([], []), cli._split_paths([self.path("nope")]))
+    def test_raises_on_paths_that_do_not_exist(self):
+        """Regression test: a mistyped path used to be dropped, making a typo look successful."""
+        with self.assertRaises(FileNotFoundError) as context:
+            cli._split_paths([self.path("nope")])
+
+        self.assertEqual(self.path("nope"), context.exception.filename)
+
+    def test_raises_on_paths_that_are_neither_file_nor_directory(self):
+        fifo = self.path("pipe")
+        os.mkfifo(fifo)
+
+        with self.assertRaises(OSError) as context:
+            cli._split_paths([fifo])
+
+        self.assertEqual("Not a file or directory", context.exception.strerror)
 
 
 class MainTest(TempDirTestCase):
@@ -281,11 +294,14 @@ class MainTest(TempDirTestCase):
         self.assertEqual(2, status)
         self.assertIn("No such file", output)
 
-    def test_nonexistent_path_is_ignored(self):
-        status, output, _ = self.run_main([self.path("nope")])
+    def test_nonexistent_path_is_an_error(self):
+        """Regression test: this used to print 'No CRC-sums found' and exit 0."""
+        status, output, errors = self.run_main([self.path("nope")])
 
-        self.assertEqual(0, status)
-        self.assertIn("No CRC-sums found", output)
+        self.assertEqual(8, status)
+        self.assertIn("No such file or directory", errors)
+        self.assertIn("nope", errors)
+        self.assertNotIn("No CRC-sums found", output)
 
     @staticmethod
     def _summary_with(problems):

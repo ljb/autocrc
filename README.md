@@ -31,6 +31,13 @@ pip install .
 
 * To check several files and directories at once: `autocrc file.sfv other[12345678].mkv some/dir`
 
+A path that does not exist is an error, not something autocrc quietly skips:
+
+```
+$ autocrc typo.sfv
+autocrc: typo.sfv: No such file or directory
+```
+
 ### Exit Status
 `autocrc` exits with a bitmask describing what went wrong:
 
@@ -40,7 +47,7 @@ pip install .
 | 1 | At least one CRC mismatch |
 | 2 | At least one missing file |
 | 4 | At least one read error, or a directory that could not be read during a recursive walk |
-| 8 | An unhandled I/O error occurred, such as a directory named on the command line that could not be read |
+| 8 | A path given on the command line does not exist or could not be read |
 | 130 | Interrupted with Ctrl-C |
 
 ### Development

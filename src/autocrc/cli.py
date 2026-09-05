@@ -1,5 +1,6 @@
 """A commandline interface to autocrc."""
 
+import errno
 import os
 import sys
 from argparse import ArgumentParser, Namespace
@@ -131,9 +132,24 @@ def _parse_args() -> Namespace:
 
 
 def _split_paths(paths: list[str]) -> tuple[list[str], list[str]]:
-    """Splits the given paths into a list of files and a list of directories."""
-    file_names = [path for path in paths if os.path.isfile(path)]
-    dir_names = [path for path in paths if os.path.isdir(path)]
+    """
+    Splits the given paths into a list of files and a list of directories.
+
+    Anything that is neither raises, so that a mistyped path is reported instead of
+    being quietly dropped -- which used to make a typo look like a successful run.
+    """
+    file_names, dir_names = [], []
+
+    for path in paths:
+        if os.path.isfile(path):
+            file_names.append(path)
+        elif os.path.isdir(path):
+            dir_names.append(path)
+        elif not os.path.exists(path):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
+        else:
+            raise OSError(errno.EINVAL, "Not a file or directory", path)
+
     return file_names, dir_names
 
 
