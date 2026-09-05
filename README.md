@@ -7,7 +7,7 @@ autocrc can perform CRC-checks recursively. After it's done, it prints a
 summary of the result.
 
 ### Prerequisites
-Python 3
+Python 3.10 or later
 
 ### Installing
 Install it with pip:
@@ -15,10 +15,9 @@ Install it with pip:
 pip install autocrc
 ```
 
-Or build and install manually:
+Or build and install from a checkout:
 ```
-python setup.py build
-python setup.py install
+pip install .
 ```
 
 ### Examples of Usage
@@ -30,14 +29,37 @@ python setup.py install
 
 * To check the CRCs specified in an sfv-file: `autocrc file.sfv`
 
+* To check several files and directories at once: `autocrc file.sfv other[12345678].mkv some/dir`
+
+### Exit Status
+`autocrc` exits with a bitmask describing what went wrong:
+
+| Value | Meaning |
+| --- | --- |
+| 0 | Everything OK |
+| 1 | At least one CRC mismatch |
+| 2 | At least one missing file |
+| 4 | At least one read error |
+| 8 | An unhandled I/O error occurred |
+
+### Development
+```
+python -m venv venv
+source venv/bin/activate
+python -m pip install -e '.[dev]'
+
+pytest -q
+ruff check
+ruff format --check
+```
+
 ### TODO
-* Improve the way --quite works
+* Improve the way --quiet works
 * More consequent treatment of paths in the console interface, at the moment
   it's not well defined when it prints absolute paths and when it prints
   relative paths
 * Improve the part that parses CRC-sums from filenames, support for
   CRCs missing the leading zeroes.
-* Fix bug: --ignore-case does not work for sfv-files with directories
 
 ### Notes
 
