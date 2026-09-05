@@ -150,6 +150,31 @@ class MainTest(TempDirTestCase):
         self.assertIn("  Tested\t 2 files", output)
         self.assertIn("  Successful\t 2 files", output)
 
+    def test_directory_header_is_absolute_for_a_relative_argument(self):
+        self.write_file(f"sub/video [{PAYLOAD_CRC}].mkv")
+        _, output = self.run_main(["sub"])
+
+        self.assertIn(f"Current directory: {os.path.realpath(self.path('sub'))}", output)
+
+    def test_directory_headers_are_consistent_within_a_recursive_run(self):
+        """Regression test: the root used to print absolute and its subdirectories relative."""
+        self.write_file(f"top [{PAYLOAD_CRC}].bin")
+        self.write_file(f"sub/nested [{PAYLOAD_CRC}].bin")
+
+        _, output = self.run_main(["-r", "."])
+
+        headers = [line.removeprefix("Current directory: ") for line in output.splitlines() if "Current" in line]
+        self.assertTrue(all(os.path.isabs(header) for header in headers), headers)
+
+    def test_directories_are_reported_in_sorted_order(self):
+        for name in ["c", "a", "b"]:
+            self.write_file(f"{name}/ok [{PAYLOAD_CRC}].bin")
+
+        _, output = self.run_main(["-r", "."])
+
+        headers = [line.removeprefix("Current directory: ") for line in output.splitlines() if "Current" in line]
+        self.assertEqual([os.path.realpath(self.path(name)) for name in ["a", "b", "c"]], headers)
+
     def test_directory_option_changes_working_directory(self):
         self.write_file(f"sub/video [{PAYLOAD_CRC}].mkv")
         os.chdir("/")

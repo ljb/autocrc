@@ -167,21 +167,29 @@ def check_dir(dir_path: str, file_names: list[str], options: Options) -> list[Cr
 
 
 def walk_targets(file_names: list[str], dir_names: list[str], options: Options) -> Iterator[tuple[str, list[str]]]:
-    """Yields (directory, file names) pairs for everything that should be CRC-checked."""
+    """
+    Yields (directory, file names) pairs for everything that should be CRC-checked.
+
+    Directories are always absolute so that callers do not have to care whether the
+    user named a path relatively, and are visited in sorted order so that the output
+    of a run does not depend on the order the filesystem happens to hand them back.
+    """
     # Individually named files are grouped by the directory they live in
     files_by_dir: dict[str, list[str]] = {}
     for file_name in file_names:
         head, tail = os.path.split(file_name)
         files_by_dir.setdefault(os.path.abspath(head), []).append(tail)
 
-    yield from files_by_dir.items()
+    yield from sorted(files_by_dir.items())
 
     for dir_name in dir_names:
         if options.recursive:
-            for root, _, files in os.walk(dir_name, followlinks=options.follow):
-                yield root, files
+            for root, dirs, files in os.walk(dir_name, followlinks=options.follow):
+                # Sorting in place makes os.walk descend in sorted order too
+                dirs.sort()
+                yield os.path.abspath(root), files
         else:
-            yield dir_name, os.listdir(dir_name)
+            yield os.path.abspath(dir_name), os.listdir(dir_name)
 
 
 def _match_ignoring_case(dir_path: str, file_name: str) -> str:

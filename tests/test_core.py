@@ -201,6 +201,27 @@ class WalkTargetsTest(TempDirTestCase):
         self.assertEqual([self.temp_dir], list(targets))
         self.assertEqual({"top.bin", "sub"}, set(targets[self.temp_dir]))
 
+    def test_directories_are_yielded_in_sorted_order(self):
+        for name in ["c", "a", "b"]:
+            self.write_file(f"{name}/payload.bin")
+
+        targets = list(core.walk_targets([], [self.temp_dir], Options(recursive=True)))
+
+        self.assertEqual(
+            [self.temp_dir, self.path("a"), self.path("b"), self.path("c")],
+            [dir_path for dir_path, _ in targets],
+        )
+
+    def test_relative_directories_are_made_absolute(self):
+        self.write_file("sub/payload.bin")
+        cwd = os.getcwd()
+        self.addCleanup(os.chdir, cwd)
+        os.chdir(self.temp_dir)
+
+        targets = list(core.walk_targets([], ["sub"], Options()))
+
+        self.assertEqual([os.path.realpath(self.path("sub"))], [dir_path for dir_path, _ in targets])
+
     def test_recursive_descends_into_subdirectories(self):
         self.write_file("top.bin")
         self.write_file("sub/nested.bin")

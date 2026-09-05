@@ -41,7 +41,7 @@ def main() -> None:
             if not results:
                 continue
 
-            _print_directory_start(dir_path)
+            print("Current directory:", dir_path)
             for result in results:
                 _print_result(result, quiet=args.quiet, verbose=args.verbose)
 
@@ -97,7 +97,12 @@ def _parse_args() -> Namespace:
         action="store_true",
         help="follow symbolic directory links in recursive mode",
     )
-    parser.add_argument("-q", "--quiet", action="store_true", help="only print error messages and summaries")
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="only print error messages and summaries",
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -117,14 +122,6 @@ def _split_paths(paths: list[str]) -> tuple[list[str], list[str]]:
     file_names = [path for path in paths if os.path.isfile(path)]
     dir_names = [path for path in paths if os.path.isdir(path)]
     return file_names, dir_names
-
-
-def _print_directory_start(dir_path: str) -> None:
-    if dir_path == os.curdir:
-        dir_path = os.path.abspath(dir_path)
-    else:
-        dir_path = os.path.normpath(dir_path)
-    print("Current directory:", dir_path)
 
 
 def _print_result(result: CrcResult, quiet: bool = False, verbose: bool = False) -> None:
