@@ -17,8 +17,8 @@ authors = [
 Homepage = "https://github.com/ljb/autocrc"
 
 [project.scripts]
-autocrc = "autocrc.text:main"
+autocrc = "autocrc.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["autocrc*"]

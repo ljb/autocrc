@@ -3,7 +3,7 @@ import os
 import sys
 from argparse import ArgumentParser, Namespace
 
-from . import autocrc
+from . import core
 
 
 def main() -> None:
@@ -49,11 +49,11 @@ def parse_args() -> tuple[Namespace, list[str], list[str]]:
     return args, file_names, dir_names
 
 
-class TextModel(autocrc.Model):
+class TextModel(core.Model):
     def __init__(self, args: Namespace, file_names: list[str],
                  dir_names: list[str]):
         super().__init__(args, file_names, dir_names)
-        self.dir_stat: autocrc.StatusInformation | None = None
+        self.dir_stat: core.StatusInformation | None = None
 
     def file_missing(self, file_name: str) -> None:
         """Print that a file is missing"""
@@ -80,7 +80,7 @@ class TextModel(autocrc.Model):
         self.file_print(file_name, "Read error")
 
     def directory_start(self, dir_name: str,
-                        dir_stat: autocrc.StatusInformation) -> None:
+                        dir_stat: core.StatusInformation) -> None:
         """Print that the CRC-checking of a directory has started"""
         self.dir_stat = dir_stat
         if dir_name == os.curdir:
