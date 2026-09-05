@@ -92,14 +92,12 @@ def _parse_args() -> Namespace:
         help="interpret \\ as / for file names parsed from sfv-files",
     )
     parser.add_argument(
-        "-c",
         "--no-crc",
         action="store_false",
         dest="crc",
         help="do not parse CRC-sums from file names",
     )
     parser.add_argument(
-        "-s",
         "--no-sfv",
         action="store_false",
         dest="sfv",

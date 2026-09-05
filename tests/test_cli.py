@@ -39,7 +39,7 @@ class ParseArgsTest(TestCase):
         self.assertFalse(args.verbose)
 
     def test_flags_can_be_toggled(self):
-        args = self.parse(["-r", "-i", "-x", "-c", "-s", "-L", "-q", "-v", "-C", "/tmp"])
+        args = self.parse(["-r", "-i", "-x", "--no-crc", "--no-sfv", "-L", "-q", "-v", "-C", "/tmp"])
         self.assertTrue(args.recursive)
         self.assertFalse(args.case)
         self.assertTrue(args.windows_paths)
