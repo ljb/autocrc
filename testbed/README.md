@@ -109,21 +109,29 @@ Expect 4 tested, 1 successful, 1 different, 2 missing, **exit 3**.
 ## 07-symlinks
 
 ```
-cd scenarios/07-symlinks && autocrc                 # 1 file: ok-link
-cd scenarios/07-symlinks && autocrc -r .            # 2 directories
-cd scenarios/07-symlinks && autocrc -r -L .         # 3 directories
+cd scenarios/07-symlinks && autocrc                  # 1 file: ok-link
+cd scenarios/07-symlinks && autocrc -r .             # 2 directories
+cd scenarios/07-symlinks && autocrc -r linked-subdir # the link as the walk root
 ```
 
-`ok-link` carries the CRC on the link's own name and points at `target.bin`;
-links are followed, so it is checked.
+`ok-link` carries the CRC on the link's own name and points at `target.bin`.
+Links to *files* are followed, so it is checked.
 
 `skipped-broken-link` has a valid-looking CRC in its name but dangles. autocrc
-says **nothing at all** about it — a broken link fails the `isfile` check and
+says **nothing at all** about it -- a broken link fails the `isfile` check and
 never becomes a candidate, so it is not even counted as missing. Worth knowing:
 a dead link in a media directory is invisible to a CRC pass.
 
-`linked-subdir` points at `real-subdir`. Without `-L` a recursive run visits only
-the real one; with `-L` it visits both, and the same file is checked twice.
+`linked-subdir` points at `real-subdir`. A recursive walk does **not** descend
+into it, so `real-subdir` is visited once and its file counted once. Naming the
+link explicitly still works, because it is then the root of the walk rather than
+something discovered inside one.
+
+Before 2.0.0 there was a `-L/--follow-symlinks` flag for descending into linked
+directories. It was removed: a directory reachable by two paths was checked and
+counted twice, which makes the summary wrong, and a link pointing at its own
+ancestor made autocrc re-read the same files up to 41 times before the kernel's
+symlink limit stopped it.
 
 ## 08-recursive — traversal order
 
@@ -173,19 +181,6 @@ autocrc                 # the fifo is skipped, the ordinary file is checked
 Before 2.0.0 a mistyped path printed `No CRC-sums found` and exited 0, which is
 indistinguishable from a clean run. Named explicitly it is now an error; merely
 present in a scanned directory, a fifo is still skipped quietly.
-
-## 99-symlink-loop-DANGEROUS
-
-`inner/back-to-parent` points at its own parent. `os.walk(followlinks=True)` has
-no loop detection, so:
-
-```
-cd scenarios/99-symlink-loop-DANGEROUS && autocrc -r -L .     # never terminates
-```
-
-Without `-L` it is harmless. Numbered 99 so it sorts last and is easy to skip.
-
----
 
 ## Other things worth trying
 

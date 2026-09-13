@@ -36,7 +36,6 @@ def main() -> None:
             windows_paths=args.windows_paths,
             crc=args.crc,
             sfv=args.sfv,
-            follow_symlinks=args.follow_symlinks,
         )
 
         unreadable_dirs: list[OSError] = []
@@ -125,12 +124,6 @@ def _parse_args() -> Namespace:
         help="do not parse CRC-sums from sfv-files",
     )
     parser.add_argument("-C", "--directory", metavar="DIR", help="use DIR as the working directory")
-    parser.add_argument(
-        "-L",
-        "--follow-symlinks",
-        action="store_true",
-        help="follow symbolic directory links in recursive mode",
-    )
     parser.add_argument(
         "-q",
         "--quiet",

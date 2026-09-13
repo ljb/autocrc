@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One pass over every scenario, comparing the exit status against what README.md
-# says it should be. The symlink loop is skipped: with -L it never terminates.
+# says it should be.
 set -u
 
 cd "$(dirname "$0")/scenarios" || exit 1
@@ -52,7 +52,7 @@ echo
 echo "Links and traversal"
 run 0 07-symlinks
 run 0 07-symlinks -r .
-run 0 07-symlinks -r -L .
+run 0 07-symlinks -r linked-subdir
 run 0 08-recursive -r .
 
 echo

@@ -37,7 +37,6 @@ class Options:
     windows_paths: bool = False
     crc: bool = True
     sfv: bool = True
-    follow_symlinks: bool = False
 
 
 @dataclass(frozen=True)
@@ -189,6 +188,11 @@ def walk_targets(
     then skipped; os.walk would otherwise swallow it and let the run look complete.
     Directories named on the command line are not affected -- failing to read one of
     those raises, because the user asked for it by name.
+
+    Symlinked directories are not descended into. A directory reachable by two paths
+    would be checked twice and counted twice, and the summary is the whole point of
+    the program. Naming such a directory on the command line still works: it is then
+    the root of the walk rather than something found inside one.
     """
     # Individually named files are grouped by the directory they live in
     files_by_dir: dict[str, list[str]] = {}
@@ -200,7 +204,7 @@ def walk_targets(
 
     for dir_name in dir_names:
         if options.recursive:
-            for root, dirs, files in os.walk(dir_name, followlinks=options.follow_symlinks, onerror=on_error):
+            for root, dirs, files in os.walk(dir_name, onerror=on_error):
                 # Sorting in place makes os.walk descend in sorted order too
                 dirs.sort()
                 yield os.path.abspath(root), files

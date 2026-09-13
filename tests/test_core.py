@@ -230,6 +230,29 @@ class WalkTargetsTest(TempDirTestCase):
         self.assertEqual({self.temp_dir: ["top.bin"], self.path("sub"): ["nested.bin"]}, targets)
 
 
+class SymlinkedDirectoryTest(TempDirTestCase):
+    def setUp(self):
+        super().setUp()
+        self.write_file("real/payload.bin")
+        os.symlink(self.path("real"), self.path("link"))
+
+    def test_symlinked_directories_are_not_descended_into(self):
+        """
+        A directory reachable twice would be checked twice and counted twice, and the
+        summary is what the program exists to produce. Dropping --follow-symlinks in
+        2.0.0 made this the only behaviour.
+        """
+        targets = dict(core.walk_targets([], [self.temp_dir], Options(recursive=True)))
+
+        self.assertEqual([self.temp_dir, self.path("real")], list(targets))
+
+    def test_a_symlinked_directory_named_explicitly_is_still_walked(self):
+        """It is then the root of the walk rather than something found inside one."""
+        targets = dict(core.walk_targets([], [self.path("link")], Options(recursive=True)))
+
+        self.assertEqual(["payload.bin"], targets[self.path("link")])
+
+
 class SummaryTest(TestCase):
     def test_from_results_counts_statuses(self):
         results = [

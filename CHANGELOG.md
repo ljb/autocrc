@@ -15,6 +15,8 @@ published, which is why this release jumps straight to 2.0.0.
 - Python 3.10 or later is now required. `pip install` fails on older interpreters.
 - Replace `-c` with `--no-crc` and `-s` with `--no-sfv`.
 - Replace `--exchange` with `--windows-paths`.
+- `-L`/`--follow` is gone. Name a symlinked directory on the command line instead
+  of relying on a recursive walk to find it.
 - Scripts that read autocrc's output need a second look: `-q` no longer prints
   anything for directories where everything is fine, and directory headers are now
   always absolute.
@@ -29,6 +31,13 @@ published, which is why this release jumps straight to 2.0.0.
   `-c` sat one shift key away from the unrelated `-C/--directory`. The long forms
   `--no-crc` and `--no-sfv` are kept.
 - The `--exchange` option, renamed to `--windows-paths`.
+- **The `-L`/`--follow` option.** A directory reachable through two paths was
+  checked and counted twice, so a recursive run's summary -- the thing autocrc
+  exists to produce -- reported more files than the tree contains. A link pointing
+  at its own ancestor was worse: autocrc re-read the same files 41 times before the
+  kernel's symlink limit ended the walk, silently and with exit 0. Symlinked
+  directories are no longer descended into. Naming one on the command line still
+  works, because it is then the root of the walk.
 - Support for Python versions before 3.10.
 - The `Model`, `TextModel` and `StatusInformation` classes. The hook-method
   architecture was a leftover from GUI support removed years earlier.
@@ -51,8 +60,6 @@ published, which is why this release jumps straight to 2.0.0.
   `autocrc -r .` mixed both forms.
 - **Directories are visited in sorted order**, so the output of a recursive run does
   not depend on the order the filesystem returns entries.
-- `--follow` is renamed to `--follow-symlinks`. The old spelling keeps working as an
-  unambiguous abbreviation.
 - The package moved to a `src/` layout, and the modules were renamed:
   `autocrc.autocrc` is now `autocrc.core` and `autocrc.text` is now `autocrc.cli`.
   The console script entry point is `autocrc.cli:main`.
@@ -84,7 +91,10 @@ published, which is why this release jumps straight to 2.0.0.
 
 ### Added
 
-- A test suite of 63 tests, including a regression test for every bug listed above.
+- A test suite of 66 tests, including a regression test for every bug listed above.
+- `testbed/`, a set of scenarios run against the installed command -- real
+  permission bits, symlinks, a fifo, Windows-style sfv paths -- checked in CI so the
+  behaviour they document cannot quietly drift.
 - `MANIFEST.in`, so the sdist ships a test suite that actually runs.
 - ruff for linting and formatting, pytest configuration, and a `dev` extra that
   installs both.

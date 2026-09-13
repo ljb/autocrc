@@ -34,19 +34,17 @@ class ParseArgsTest(TestCase):
         self.assertTrue(args.crc)
         self.assertTrue(args.sfv)
         self.assertIsNone(args.directory)
-        self.assertFalse(args.follow_symlinks)
         self.assertFalse(args.quiet)
         self.assertFalse(args.verbose)
 
     def test_flags_can_be_toggled(self):
-        args = self.parse(["-r", "-i", "-x", "--no-crc", "--no-sfv", "-L", "-q", "-v", "-C", "/tmp"])
+        args = self.parse(["-r", "-i", "-x", "--no-crc", "--no-sfv", "-q", "-v", "-C", "/tmp"])
         self.assertTrue(args.recursive)
         self.assertFalse(args.case)
         self.assertTrue(args.windows_paths)
         self.assertFalse(args.crc)
         self.assertFalse(args.sfv)
         self.assertEqual("/tmp", args.directory)
-        self.assertTrue(args.follow_symlinks)
         self.assertTrue(args.quiet)
         self.assertTrue(args.verbose)
 

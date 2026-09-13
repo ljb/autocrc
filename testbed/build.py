@@ -151,7 +151,7 @@ def build_symlinks() -> None:
 
     payload = b"inside a real subdirectory\n"
     write(d / "real-subdir" / f"ok-nested [{crc(payload)}].bin", payload)
-    # Only descended into with -L/--follow-symlinks
+    # Never descended into by -r; naming it on the command line still works
     (d / "linked-subdir").symlink_to("real-subdir", target_is_directory=True)
 
 
@@ -208,22 +208,6 @@ def build_odd_arguments() -> None:
     write(d / f"ok-ordinary [{crc(payload)}].bin", payload)
 
 
-def build_symlink_loop() -> None:
-    """Isolated on purpose: -L here makes os.walk recurse forever."""
-    d = SCENARIOS / "99-symlink-loop-DANGEROUS"
-    d.mkdir(parents=True, exist_ok=True)
-    payload = b"inside the loop\n"
-    write(d / "inner" / f"ok [{crc(payload)}].bin", payload)
-    loop = d / "inner" / "back-to-parent"
-    if not loop.exists():
-        loop.symlink_to("..", target_is_directory=True)
-    (d / "WARNING.txt").write_text(
-        "autocrc -r -L in here never terminates: inner/back-to-parent points at its own\n"
-        "parent, and os.walk(followlinks=True) has no loop detection. Without -L it is\n"
-        "harmless. This directory is numbered 99 so it sorts last and is easy to skip.\n"
-    )
-
-
 def main() -> None:
     if "--clean" in sys.argv:
         clean()
@@ -243,7 +227,6 @@ def main() -> None:
         build_exit_codes,
         build_large_files,
         build_odd_arguments,
-        build_symlink_loop,
     ):
         builder()
         print(f"  {builder.__name__.removeprefix('build_')}")
