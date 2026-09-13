@@ -27,10 +27,10 @@ published, which is why this release jumps straight to 2.0.0.
 
 ### Removed
 
-- The `-c` and `-s` short options. Both were negations wearing a positive name, and
-  `-c` sat one shift key away from the unrelated `-C/--directory`. The long forms
-  `--no-crc` and `--no-sfv` are kept.
-- The `--exchange` option, renamed to `--windows-paths`.
+- **The `-c` and `-s` short options.** Both were negations wearing a positive
+  name, and `-c` sat one shift key away from the unrelated `-C/--directory`. The
+  long forms `--no-crc` and `--no-sfv` are kept.
+- **The `--exchange` option**, renamed to `--windows-paths`.
 - **The `-L`/`--follow` option.** A directory reachable through two paths was
   checked and counted twice, so a recursive run's summary -- the thing autocrc
   exists to produce -- reported more files than the tree contains. A link pointing
@@ -38,7 +38,8 @@ published, which is why this release jumps straight to 2.0.0.
   kernel's symlink limit ended the walk, silently and with exit 0. Symlinked
   directories are no longer descended into. Naming one on the command line still
   works, because it is then the root of the walk.
-- Support for Python versions before 3.10.
+- **Support for Python versions before 3.10.** `pip install` now fails on older
+  interpreters rather than installing something that cannot run.
 - The `Model`, `TextModel` and `StatusInformation` classes. The hook-method
   architecture was a leftover from GUI support removed years earlier.
 
