@@ -61,6 +61,18 @@ ruff check
 ruff format --check
 ```
 
+There is also an end-to-end testbed that exercises the installed command against
+real files -- permission bits, symlinks, a fifo, Windows-style sfv paths. It is
+worth a pass before a release:
+
+```
+pipx install --force .
+python testbed/build.py
+testbed/run-scenarios.sh
+```
+
+See [testbed/README.md](testbed/README.md) for what each scenario covers.
+
 ### Changelog
 
 See [CHANGELOG.md](CHANGELOG.md). Note that 2.0.0 contains breaking changes if you

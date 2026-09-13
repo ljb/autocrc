@@ -14,7 +14,11 @@ Agent-facing notes for working in this repo. README has the user-facing overview
 - Tests: `pytest -q` (config in `pyproject.toml` sets `pythonpath = ["src"]`).
 - Lint: `ruff check`
 - Format check: `ruff format --check`
-- CI runs all three (`.github/workflows/python-tests.yml`). Run them locally before declaring a task done.
+- End-to-end: `python testbed/build.py && testbed/run-scenarios.sh` (needs `autocrc` installed,
+  e.g. `pipx install --force .`). Slower to set up than pytest, so run it before a release rather
+  than on every change.
+- CI runs all of these (`.github/workflows/python-tests.yml`). Run them locally before declaring a
+  task done.
 
 ## Project layout
 

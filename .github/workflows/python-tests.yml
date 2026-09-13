@@ -27,6 +27,32 @@ jobs:
       - name: Run tests
         run: pytest -q
 
+  end-to-end:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Deliberately not an editable or dev install: this exercises the console
+      # script a user gets, which the pytest suite never touches.
+      - name: Install package
+        run: python -m pip install .
+
+      - name: Build the testbed
+        run: python testbed/build.py
+        env:
+          # CI has no one watching output stream in, so the large files can be tiny
+          AUTOCRC_TESTBED_LARGE_FILE_SIZE: 65536
+
+      - name: Run the scenarios
+        run: testbed/run-scenarios.sh
+
   lint:
     runs-on: ubuntu-latest
 
