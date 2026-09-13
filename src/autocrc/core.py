@@ -147,23 +147,29 @@ def crc32_of_file(path: str, block_size: int = BLOCK_SIZE) -> str:
     return hex(current & 0xFFFFFFFF)[2:].upper().zfill(8)
 
 
-def check_dir(dir_path: str, file_names: list[str], options: Options) -> list[CrcResult]:
-    """CRC-checks the files in a directory. Returns one CrcResult per file that had a CRC to check."""
-    crcs = crcs_in_dir(dir_path, file_names, options)
+def check_crcs(dir_path: str, crcs: dict[str, str]) -> Iterator[CrcResult]:
+    """
+    Yields one CrcResult per entry in crcs, in file name order.
 
-    results = []
+    This is a generator so that a caller can report each file as it is checked.
+    Hashing a directory of video files takes minutes, and a caller that waits for
+    the whole list before printing anything is indistinguishable from one that hung.
+    """
     for file_name, crc in sorted(crcs.items()):
         try:
             actual = crc32_of_file(os.path.join(dir_path, file_name))
         except FileNotFoundError:
-            results.append(CrcResult(file_name, crc, None, Status.MISSING))
+            yield CrcResult(file_name, crc, None, Status.MISSING)
         except (OSError, ValueError):
-            results.append(CrcResult(file_name, crc, None, Status.READ_ERROR))
+            yield CrcResult(file_name, crc, None, Status.READ_ERROR)
         else:
             status = Status.OK if crc == actual else Status.MISMATCH
-            results.append(CrcResult(file_name, crc, actual, status))
+            yield CrcResult(file_name, crc, actual, status)
 
-    return results
+
+def check_dir(dir_path: str, file_names: list[str], options: Options) -> list[CrcResult]:
+    """CRC-checks the files in a directory. Returns one CrcResult per file that had a CRC to check."""
+    return list(check_crcs(dir_path, crcs_in_dir(dir_path, file_names, options)))
 
 
 def walk_targets(

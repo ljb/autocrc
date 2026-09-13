@@ -6,7 +6,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from importlib.metadata import PackageNotFoundError, version
 
-from .core import CrcResult, Options, Status, Summary, check_dir, walk_targets
+from .core import CrcResult, Options, Status, Summary, check_crcs, crcs_in_dir, walk_targets
 
 FILE_NAME_WIDTH = 77
 SEPARATOR_WIDTH = 80
@@ -48,21 +48,7 @@ def main() -> None:
 
         total = Summary()
         for dir_path, dir_files in walk_targets(file_names, dir_names, options, on_error=on_walk_error):
-            results = check_dir(dir_path, dir_files, options)
-            if not results:
-                continue
-
-            summary = Summary.from_results(results)
-            total += summary
-
-            # A quiet run only reports the directories that had something go wrong
-            if args.quiet and summary.everything_ok:
-                continue
-
-            print("Current directory:", dir_path)
-            for result in results:
-                _print_result(result, quiet=args.quiet, verbose=args.verbose)
-            _print_dir_summary(summary)
+            total += _check_and_report(dir_path, dir_files, options, args)
 
         _print_total_summary(total)
         sys.exit(_exit_status(total, had_unreadable_dirs=bool(unreadable_dirs)))
@@ -73,6 +59,40 @@ def main() -> None:
     except KeyboardInterrupt:
         # 128 + SIGINT, so that an interrupted run is not mistaken for a successful one
         sys.exit(130)
+
+
+def _check_and_report(dir_path: str, dir_files: list[str], options: Options, args: Namespace) -> Summary:
+    """CRC-checks one directory, reports it, and returns its summary."""
+    crcs = crcs_in_dir(dir_path, dir_files, options)
+    if not crcs:
+        return Summary()
+
+    # The header goes out before any hashing starts, and each file is reported as it
+    # finishes. A directory of video files takes minutes, and a run that prints nothing
+    # until it is done looks like it has hung.
+    streaming = not args.quiet
+    if streaming:
+        print("Current directory:", dir_path)
+
+    results = []
+    for result in check_crcs(dir_path, crcs):
+        results.append(result)
+        if streaming:
+            _print_result(result, quiet=False, verbose=args.verbose)
+
+    summary = Summary.from_results(results)
+
+    # Quiet mode cannot stream: whether to report the directory at all is only known
+    # once every file in it has been checked.
+    if not streaming:
+        if summary.everything_ok:
+            return summary
+        print("Current directory:", dir_path)
+        for result in results:
+            _print_result(result, quiet=True, verbose=args.verbose)
+
+    _print_dir_summary(summary)
+    return summary
 
 
 def _parse_args() -> Namespace:

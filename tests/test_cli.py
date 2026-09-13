@@ -133,6 +133,33 @@ class MainTest(TempDirTestCase):
         self.assertEqual("-" * 80, lines[2])
         self.assertEqual("Everything OK", lines[3])
 
+    def test_results_are_printed_while_the_directory_is_still_being_checked(self):
+        """
+        Regression test: output used to be withheld until the whole directory was done.
+
+        On a directory of video files that is minutes of complete silence, which is
+        indistinguishable from a hang. Each file must be reported as it finishes.
+        """
+        for name in ["a", "b", "c"]:
+            self.write_file(f"{name} [{PAYLOAD_CRC}].bin")
+
+        printed_before_each_check = []
+        real_crc32 = cli.check_crcs.__globals__["crc32_of_file"]
+
+        def recording_crc32(path, *args, **kwargs):
+            printed_before_each_check.append(out.getvalue().count("\n"))
+            return real_crc32(path, *args, **kwargs)
+
+        out = io.StringIO()
+        with patch("autocrc.core.crc32_of_file", side_effect=recording_crc32):
+            with patch("sys.argv", ["autocrc"]), redirect_stdout(out):
+                with self.assertRaises(SystemExit):
+                    cli.main()
+
+        # The header is out before the first file is hashed, and each file adds a line
+        # before the next one starts. Buffering everything would give [0, 0, 0].
+        self.assertEqual([1, 2, 3], printed_before_each_check)
+
     def test_quiet_says_nothing_when_everything_is_ok(self):
         self.write_file(f"ok [{PAYLOAD_CRC}].bin")
         status, output, _ = self.run_main(["-q"])
@@ -251,7 +278,7 @@ class MainTest(TempDirTestCase):
     def test_keyboard_interrupt_exits_130(self):
         self.write_file(f"ok [{PAYLOAD_CRC}].bin")
 
-        with patch("autocrc.cli.check_dir", side_effect=KeyboardInterrupt):
+        with patch("autocrc.cli.check_crcs", side_effect=KeyboardInterrupt):
             status, _, _ = self.run_main([])
 
         self.assertEqual(130, status)
